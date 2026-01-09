@@ -2,8 +2,14 @@
   "hash": "ba1b5254",
   "configHash": "3246be2f",
   "lockfileHash": "f5289c75",
-  "browserHash": "f0fcb72d",
+  "browserHash": "f7f423ee",
   "optimized": {
+    "pinia": {
+      "src": "../../node_modules/pinia/dist/pinia.mjs",
+      "file": "pinia.js",
+      "fileHash": "f7b40bad",
+      "needsInterop": false
+    },
     "vue-router": {
       "src": "../../node_modules/vue-router/dist/vue-router.mjs",
       "file": "vue-router.js",

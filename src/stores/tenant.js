@@ -21,6 +21,12 @@ export const useTenantStore = defineStore("tenant", {
         },
 
         async resolveTenantByHost() {
+
+            // 🔒 Se lo slug è già settato (es: da /:slug), non risolvere da dominio
+            if (this.slug) {
+                return String(this.slug)
+            }
+
             this.loading = true
             this.error = null
 
@@ -36,7 +42,12 @@ export const useTenantStore = defineStore("tenant", {
                     `${API_BASE}/api/tenant/resolve?host=${encodeURIComponent(host)}`
                 )
 
-                if (!res.ok) throw new Error(`Tenant resolve failed: HTTP ${res.status}`)
+                if (!res.ok) {
+                    // 404 = dominio non mappato (non è un errore per l’utente)
+                    if (res.status === 404) return null
+                    throw new Error(`Tenant resolve failed: HTTP ${res.status}`)
+                }
+
 
                 const contentType = res.headers.get("content-type") || ""
                 if (!contentType.includes("application/json")) {
@@ -57,11 +68,11 @@ export const useTenantStore = defineStore("tenant", {
                 return String(slug)
 
             } catch (e) {
-                this.slug = null
-                this.source = null
+                // 🔒 Non toccare slug/source: potrebbero essere già corretti (es: /scuderia76)
                 this.error = e?.message || String(e)
                 return null
             } finally {
+
                 this.loading = false
             }
         },

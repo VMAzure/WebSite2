@@ -7,23 +7,29 @@
     const tenantStore = useTenantStore()
 
     onMounted(async () => {
-        const slugFromPath = route.params.slug ? String(route.params.slug) : null
+        const slugFromPath = route.params.slug
+            ? String(route.params.slug)
+            : null
 
         // 🔒 SE c'è uno slug nel path → NON fare resolve
         if (slugFromPath && slugFromPath !== "default") {
             return
         }
 
-        // 🔒 In locale non fare resolve
+        // 🔒 In locale NON fare resolve
         if (window.location.hostname === "localhost") {
             return
         }
 
         // ✅ SOLO root domain senza slug
-        const resolved = await tenantStore.resolveTenantByHost()
-        if (!resolved) return
-
-        tenantStore.setSlug(resolved)
+        try {
+            const resolved = await tenantStore.resolveTenantByHost()
+            if (resolved) {
+                tenantStore.setSlug(resolved)
+            }
+        } catch {
+            // silenzioso: il BE può non conoscere ancora il dominio
+        }
     })
 </script>
 

@@ -14,5 +14,15 @@ export default defineConfig({
         strictPort: true
     },
 
+    server: {
+        proxy: {
+            "/api": {
+                target: "http://localhost:8080",
+                changeOrigin: true,
+                secure: false
+            }
+        }
+    },
+
     cacheDir: ".vite-cache" // ✅ fuori da node_modules, evita EPERM su Windows
 })

@@ -3,52 +3,112 @@ import { defineStore } from "pinia"
 export const useTenantStore = defineStore("tenant", {
     state: () => ({
         slug: null,
+        source: null, // "path" (per ora)
+
         settings: null,
-        resolved: false,
         loading: false,
-        error: null
+        error: null,
     }),
 
     actions: {
-        setSlug(slug) {
+        setTenant(slug, source = "path") {
             this.slug = slug
+            this.source = source
+        },
+
+        setSlug(slug) {
+            this.setTenant(slug, "path")
+        },
+
+        async resolveTenantByHost() {
+            this.loading = true
+            this.error = null
+
+            try {
+                const API_BASE = import.meta.env.VITE_API_BASE_URL
+                if (!API_BASE) {
+                    throw new Error("Missing VITE_API_BASE_URL (Railway Variables).")
+                }
+
+                const host = window.location.host
+
+                const res = await fetch(
+                    `${API_BASE}/api/tenant/resolve?host=${encodeURIComponent(host)}`
+                )
+
+                if (!res.ok) throw new Error(`Tenant resolve failed: HTTP ${res.status}`)
+
+                const contentType = res.headers.get("content-type") || ""
+                if (!contentType.includes("application/json")) {
+                    const text = await res.text()
+                    throw new Error(
+                        `Resolve response is not JSON (status ${res.status}). Got: ${contentType}. First chars: ${text.slice(0, 40)}`
+                    )
+                }
+
+                const data = await res.json()
+
+                // 👉 QUI: se il tuo backend usa un nome campo diverso, cambiamo questa riga
+                const slug = data?.slug
+
+                if (!slug) throw new Error("Tenant resolve returned no slug")
+
+                this.setTenant(String(slug), "domain")
+                return String(slug)
+
+            } catch (e) {
+                this.slug = null
+                this.source = null
+                this.error = e?.message || String(e)
+                return null
+            } finally {
+                this.loading = false
+            }
+        },
+
+
+        async loadPublicSettings(slug) {
+            this.loading = true
+            this.error = null
+
+            try {
+                const API_BASE = import.meta.env.VITE_API_BASE_URL
+
+                if (!API_BASE) {
+                    throw new Error("Missing VITE_API_BASE_URL (Railway Variables).")
+                }
+
+                const res = await fetch(
+                    `${API_BASE}/api/site-settings-public/${encodeURIComponent(slug)}`
+                )
+
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+                const contentType = res.headers.get("content-type") || ""
+                if (!contentType.includes("application/json")) {
+                    const text = await res.text()
+                    throw new Error(
+                        `Response is not JSON (status ${res.status}). Got: ${contentType}. First chars: ${text.slice(0, 40)}`
+                    )
+                }
+
+                this.settings = await res.json()
+
+            } catch (e) {
+                this.settings = null
+                this.error = e?.message || String(e)
+            } finally {
+                this.loading = false
+            }
         },
 
         reset() {
             this.slug = null
+            this.source = null
             this.settings = null
-            this.resolved = false
             this.loading = false
             this.error = null
         },
-
-        // QUESTA È LA CHIAMATA AL TUO BACKEND
-        async loadPublicSettings(slug) {
-            this.loading = true
-            this.error = null
-            this.resolved = false
-
-            try {
-                const response = await fetch(
-                    `https://api.azcore.it/api/site-settings-public/${slug}`
-                )
-
-                if (!response.ok) {
-                    throw new Error("Errore API")
-                }
-
-                const data = await response.json()
-
-                this.settings = data
-                this.resolved = true
-                return data
-            } catch (err) {
-                this.error = err.message
-                this.settings = null
-                this.resolved = false
-            } finally {
-                this.loading = false
-            }
-        }
-    }
+    },
 })

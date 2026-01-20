@@ -6,15 +6,12 @@ const router = createRouter({
     history: createWebHistory(),
     routes: [
         {
-            path: "/",
-            redirect: "/default",
-        },
-        {
-            path: "/:slug",
-            name: "tenant-home",
+            path: "/:slug?",
+            name: "home",
             component: HomePage,
             props: true,
         },
+
         {
             path: "/:pathMatch(.*)*",
             name: "not-found",

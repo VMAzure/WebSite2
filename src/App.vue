@@ -17,6 +17,10 @@
             // ✅ se ho slug nel path, NON faccio resolve
             if (slug) return
 
+            // 🔒 guardia HARD: se l’URL ha un path tipo /scuderia76, NON fare resolve
+            const hasPathSlug = window.location.pathname.split("/").filter(Boolean).length > 0
+            if (hasPathSlug) return
+
             // ✅ in locale non faccio resolve
             if (window.location.hostname === "localhost") return
 
@@ -27,6 +31,7 @@
             } catch {
                 // silenzioso
             }
+
         },
         { immediate: true }
     )

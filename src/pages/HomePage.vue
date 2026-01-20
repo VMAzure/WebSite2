@@ -46,12 +46,6 @@
 
     <main style="flex:1; padding:24px;">
       <h1>Home</h1>
-<p style="opacity:.6;font-size:12px">
-  BUILD MARKER: 2026-01-20-1 | route.slug: <b>{{ String(route.params.slug || "") }}</b>
-</p>
-
-
-
 
       <p>
   Slug attivo:

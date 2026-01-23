@@ -6,23 +6,31 @@ export default defineConfig({
     plugins: [vue()],
     resolve: {
         alias: {
-            "@": fileURLToPath(new URL("./src", import.meta.url))
-        }
+            "@": fileURLToPath(new URL("./src", import.meta.url)),
+        },
     },
+
     preview: {
         port: 8080,
-        strictPort: true
+        strictPort: true,
     },
 
     server: {
+        host: true,
+        port: 5173,
+        strictPort: true,
+
+        // ✅ aggiungi questo
+        allowedHosts: ["europacarauto.local"],
+
         proxy: {
             "/api": {
-                target: "http://localhost:8080",
+                target: "https://coreapi-production-ca29.up.railway.app",
                 changeOrigin: true,
-                secure: false
-            }
-        }
+                secure: false,
+            },
+        },
     },
 
-    cacheDir: ".vite-cache" // ✅ fuori da node_modules, evita EPERM su Windows
+    cacheDir: ".vite-cache",
 })

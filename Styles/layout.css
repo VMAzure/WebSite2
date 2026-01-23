@@ -1,0 +1,23 @@
+/* ===============================
+   FULL BLEED STANDARD
+=============================== */
+.full-bleed {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+}
+
+/* ===============================
+   SECTION BASE
+=============================== */
+.section {
+    padding: var(--u-4) var(--u-3);
+}
+
+/* ===============================
+   STACK VERTICALE
+=============================== */
+.stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--u-3);
+}

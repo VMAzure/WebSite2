@@ -1,42 +1,53 @@
+<template>
+  <!-- ✅ pagine tenant: chrome sempre -->
+  <div v-if="showChrome">
+    <div v-if="settings" style="min-height:100vh; background:#fff">
+      <Topbar :settings="settings" :slug="slug" />
+      <Navbar :settings="settings" :slug="slug" />
+
+      <router-view />
+
+      <Footer :settings="settings" />
+    </div>
+
+    <div v-else class="loading">Caricamento...</div>
+  </div>
+
+  <!-- ✅ pagine di sistema (tenant-not-configured, 404) -->
+  <div v-else>
+    <router-view />
+  </div>
+</template>
+
 <script setup>
     import { computed, watch } from "vue"
     import { useRoute } from "vue-router"
-    import { useTenantStore } from "./stores/tenant"
+    import { useTenantStore } from "@/stores/tenant"
+
+    import Topbar from "@/components/TopBar.vue"
+    import Navbar from "@/components/Navbar.vue"
+    import Footer from "@/components/Footer.vue"
+
+    import { loadIubendaIfNeeded } from "@/compliance/iubenda"
 
     const route = useRoute()
-    const tenantStore = useTenantStore()
+    const tenant = useTenantStore()
 
-    const slugFromPath = computed(() => {
-        const s = route.params.slug ? String(route.params.slug) : null
-        return s && s !== "default" ? s : null
-    })
+    const slug = computed(() => route.params.slug || tenant.slug || "")
+    const settings = computed(() => tenant.settings || null)
 
+    // chrome solo dove serve
+    const showChrome = computed(() => route.meta?.tenantRequired === true)
+
+    // ✅ quando arriva la compliance (fetch non bloccante), carica iubenda una volta
     watch(
-        slugFromPath,
-        async (slug) => {
-            // ✅ se ho slug nel path, NON faccio resolve
-            if (slug) return
-
-            // 🔒 guardia HARD: se l’URL ha un path tipo /scuderia76, NON fare resolve
-            const hasPathSlug = window.location.pathname.split("/").filter(Boolean).length > 0
-            if (hasPathSlug) return
-
-            // ✅ in locale non faccio resolve
-            if (window.location.hostname === "localhost") return
-
-            // ✅ solo root domain senza slug
-            try {
-                const resolved = await tenantStore.resolveTenantByHost()
-                if (resolved) tenantStore.setSlug(resolved)
-            } catch {
-                // silenzioso
-            }
-
-        },
+        () => tenant.compliance,
+        (c) => loadIubendaIfNeeded(c),
         { immediate: true }
     )
 </script>
 
-<template>
-  <router-view />
-</template>
+
+<style>
+.loading { padding: 16px; }
+</style>

@@ -2,8 +2,14 @@
   "hash": "165583a3",
   "configHash": "7c131ad4",
   "lockfileHash": "2b1d352e",
-  "browserHash": "d835af1f",
+  "browserHash": "05eee8f8",
   "optimized": {
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "019c7546",
+      "needsInterop": false
+    },
     "pinia": {
       "src": "../../node_modules/pinia/dist/pinia.mjs",
       "file": "pinia.js",

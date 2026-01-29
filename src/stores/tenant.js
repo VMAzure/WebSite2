@@ -1,4 +1,4 @@
-import { defineStore } from "pinia"
+import { defineStore } from "pinia";
 
 export const useTenantStore = defineStore("tenant", {
     state: () => ({
@@ -6,26 +6,30 @@ export const useTenantStore = defineStore("tenant", {
         tenant: null,
         source: null,
 
-        // ✅ già usato in App.vue (computed)
         settings: null,
-
-        // ✅ nuovo: cookie/privacy/cmp per lo slug
         compliance: null,
+
+        team: [],
+        teamLoadedSlug: null,
     }),
 
     actions: {
         setTenant(payload) {
-            this.slug = payload?.slug || this.slug
-            this.source = payload?.source || this.source
+            this.slug = payload?.slug || this.slug;
+            this.source = payload?.source || this.source;
         },
 
         setSettings(settings) {
-            this.settings = settings || null
+            this.settings = settings || null;
         },
 
-        // ✅ nuovo
         setCompliance(compliance) {
-            this.compliance = compliance || null
+            this.compliance = compliance || null;
+        },
+
+        setTeam(team, slug) {
+            this.team = Array.isArray(team) ? team : [];
+            this.teamLoadedSlug = slug || this.slug || null;
         },
     },
-})
+});

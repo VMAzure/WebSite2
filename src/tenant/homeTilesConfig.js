@@ -9,12 +9,16 @@ const DEFAULT_BODY_TYPES = [
     { key: "coupe", label: "Coupé", iconUrl: "/img/body/coupe.png" },
     { key: "citycar", label: "City car", iconUrl: "/img/body/citycar.png" },
     { key: "pickup", label: "Pickup", iconUrl: "/img/body/pickup.png" },
-]
+];
 
 const DEFAULT_BRANDS = [
     { key: "audi", label: "Audi", iconUrl: "/img/brands/audi.png" },
     { key: "bmw", label: "BMW", iconUrl: "/img/brands/bmw.png" },
-    { key: "mercedes", label: "Mercedes-Benz", iconUrl: "/img/brands/mercedes.png" },
+    {
+        key: "mercedes",
+        label: "Mercedes-Benz",
+        iconUrl: "/img/brands/mercedes.png",
+    },
     { key: "vw", label: "Volkswagen", iconUrl: "/img/brands/vw.png" },
     { key: "fiat", label: "Fiat", iconUrl: "/img/brands/fiat.png" },
     { key: "toyota", label: "Toyota", iconUrl: "/img/brands/toyota.png" },
@@ -32,7 +36,7 @@ const DEFAULT_BRANDS = [
     { key: "mini", label: "MINI", iconUrl: "/img/brands/mini.png" },
     { key: "alfa", label: "Alfa Romeo", iconUrl: "/img/brands/alfaromeo.png" },
     { key: "dacia", label: "Dacia", iconUrl: "/img/brands/dacia.png" },
-]
+];
 
 // Qui gestisci tenant per tenant
 const TENANT_TILES = {
@@ -51,10 +55,10 @@ const TENANT_TILES = {
             { key: "suzuki", label: "Suzuki", iconUrl: "/img/brands/suzuki.png" },
         ],
     },
-}
+};
 
 function normalize(list) {
-    const arr = Array.isArray(list) ? list : []
+    const arr = Array.isArray(list) ? list : [];
     return arr
         .filter(Boolean)
         .map((x) => ({
@@ -62,17 +66,25 @@ function normalize(list) {
             label: String(x.label || "").trim(),
             iconUrl: String(x.iconUrl || "").trim(),
         }))
-        .filter((x) => x.key && x.label)
+        .filter((x) => x.key && x.label);
 }
 
 export function getBodyTypesForSlug(slug) {
-    const s = String(slug || "").trim().toLowerCase()
-    const fromTenant = TENANT_TILES[s]?.bodyTypes
-    return normalize(fromTenant && fromTenant.length ? fromTenant : DEFAULT_BODY_TYPES)
+    const s = String(slug || "")
+        .trim()
+        .toLowerCase();
+    const fromTenant = TENANT_TILES[s]?.bodyTypes;
+    return normalize(
+        fromTenant && fromTenant.length ? fromTenant : DEFAULT_BODY_TYPES,
+    );
 }
 
 export function getBrandsForSlug(slug) {
-    const s = String(slug || "").trim().toLowerCase()
-    const fromTenant = TENANT_TILES[s]?.brands
-    return normalize(fromTenant && fromTenant.length ? fromTenant : DEFAULT_BRANDS)
+    const s = String(slug || "")
+        .trim()
+        .toLowerCase();
+    const fromTenant = TENANT_TILES[s]?.brands;
+    return normalize(
+        fromTenant && fromTenant.length ? fromTenant : DEFAULT_BRANDS,
+    );
 }

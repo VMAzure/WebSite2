@@ -24,12 +24,22 @@ export default defineConfig({
         allowedHosts: ["europacarauto.local"],
 
         proxy: {
+            // ✅ TEAM: la rotta reale NON ha /api davanti
+            "/api/users/team-pubblico": {
+                target: "https://api.azcore.it",
+                changeOrigin: true,
+                secure: false,
+                rewrite: (path) => path.replace(/^\/api/, ""), // /api/users/... -> /users/...
+            },
+
+            // ✅ tutto il resto continua come prima
             "/api": {
                 target: "https://coreapi-production-ca29.up.railway.app",
                 changeOrigin: true,
                 secure: false,
             },
         },
+
     },
 
     cacheDir: ".vite-cache",

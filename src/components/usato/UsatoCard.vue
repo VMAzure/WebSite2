@@ -1,21 +1,21 @@
 <script setup>
-import { useRouter, useRoute } from "vue-router"
-import { useTenantStore } from "@/stores/tenant"
+    import { useRouter, useRoute } from "vue-router";
+    import { useTenantStore } from "@/stores/tenant";
 
-const props = defineProps({ car: Object })
-const router = useRouter()
-const route = useRoute()
-const tenant = useTenantStore()
+    const props = defineProps({ car: Object });
+    const router = useRouter();
+    const route = useRoute();
+    const tenant = useTenantStore();
 
-const slug = route.params.slug || tenant.slug
+    const slug = route.params.slug || tenant.slug;
 
-function goToDetail() {
-  router.push(
-    slug
-      ? `/index/${slug}/usato/${props.car.slug}`
-      : `/usato/${props.car.slug}`
-  )
-}
+    function goToDetail() {
+        router.push(
+            slug
+                ? `/index/${slug}/usato/${props.car.slug}`
+                : `/usato/${props.car.slug}`,
+        );
+    }
 </script>
 
 <template>

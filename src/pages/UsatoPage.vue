@@ -1,245 +1,252 @@
 <!-- src/pages/UsatoPage.vue -->
 <script setup>
-    import { ref, computed, onMounted } from "vue"
-    import { useRoute, useRouter } from "vue-router"
-    import { useTenantStore } from "@/stores/tenant"
+    import { ref, computed, onMounted } from "vue";
+    import { useRoute, useRouter } from "vue-router";
+    import { useTenantStore } from "@/stores/tenant";
 
-    import CardUsato from "@/components/CardUsato.vue"
-    import { fetchUsatoList } from "@/api/usatoPublic"
-    import { mapListToCardUsatoDto } from "@/mappers/usatoCardMapper"
+    import CardUsato from "@/components/CardUsato.vue";
+    import { fetchUsatoList } from "@/api/usatoPublic";
+    import { mapListToCardUsatoDto } from "@/mappers/usatoCardMapper";
 
-    const route = useRoute()
-    const router = useRouter()
-    const tenant = useTenantStore()
+    const route = useRoute();
+    const router = useRouter();
+    const tenant = useTenantStore();
 
-    const slug = computed(() => (route.params.slug || tenant.slug || "").toString().trim())
-    const settings = computed(() => tenant.settings || {})
+    const slug = computed(() =>
+        (route.params.slug || tenant.slug || "").toString().trim(),
+    );
+    const settings = computed(() => tenant.settings || {});
 
-    const loading = ref(true)
-    const error = ref(null)
-    const cards = ref([])
+    const loading = ref(true);
+    const error = ref(null);
+    const cards = ref([]);
 
     // ============================
     // Mobile filters panel
     // ============================
-    const mobileFiltersOpen = ref(false)
+    const mobileFiltersOpen = ref(false);
 
     function toggleMobileFilters() {
-        mobileFiltersOpen.value = !mobileFiltersOpen.value
+        mobileFiltersOpen.value = !mobileFiltersOpen.value;
     }
 
     function closeMobileFilters() {
-        mobileFiltersOpen.value = false
+        mobileFiltersOpen.value = false;
     }
-
 
     // ============================
     // Helpers
     // ============================
     function normBrand(v) {
-        return String(v ?? "").trim().toLowerCase().replace(/\s+/g, "-")
+        return String(v ?? "")
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "-");
     }
 
     function toInt(v) {
-        const n = parseInt(String(v || "").replace(/[^\d]/g, ""), 10)
-        return Number.isFinite(n) ? n : null
+        const n = parseInt(String(v || "").replace(/[^\d]/g, ""), 10);
+        return Number.isFinite(n) ? n : null;
     }
     function roundDownTo(n, step) {
-        if (!Number.isFinite(n) || !Number.isFinite(step) || step <= 0) return n
-        return Math.floor(n / step) * step
+        if (!Number.isFinite(n) || !Number.isFinite(step) || step <= 0) return n;
+        return Math.floor(n / step) * step;
     }
 
     function roundUpTo(n, step) {
-        if (!Number.isFinite(n) || !Number.isFinite(step) || step <= 0) return n
-        return Math.ceil(n / step) * step
+        if (!Number.isFinite(n) || !Number.isFinite(step) || step <= 0) return n;
+        return Math.ceil(n / step) * step;
     }
 
     function setQuery(patch) {
-        const next = { ...route.query, ...patch }
+        const next = { ...route.query, ...patch };
         Object.keys(next).forEach((k) => {
-            const v = next[k]
-            if (v === "" || v === null || v === undefined) delete next[k]
-        })
-        router.replace({ path: route.path, query: next })
+            const v = next[k];
+            if (v === "" || v === null || v === undefined) delete next[k];
+        });
+        router.replace({ path: route.path, query: next });
     }
 
     function clearFilters() {
-        router.replace({ path: route.path, query: {} })
-        closeMobileFilters()
+        router.replace({ path: route.path, query: {} });
+        closeMobileFilters();
     }
-
 
     // ============================
     // Query-driven filters
     // ============================
-    const qBrand = computed(() => String(route.query.brand || "").trim().toLowerCase())
-    const qPriceMax = computed(() => String(route.query.price_max || "").trim())
-    const qYearMin = computed(() => String(route.query.year_min || "").trim())
-    const qSort = computed(() => String(route.query.sort || "year_desc").trim())
+    const qBrand = computed(() =>
+        String(route.query.brand || "")
+            .trim()
+            .toLowerCase(),
+    );
+    const qPriceMax = computed(() => String(route.query.price_max || "").trim());
+    const qYearMin = computed(() => String(route.query.year_min || "").trim());
+    const qSort = computed(() => String(route.query.sort || "year_desc").trim());
 
     // ============================
     // Options (dropdown)
     // ============================
     const brandOptions = computed(() => {
-        const map = new Map()
-        for (const c of (cards.value || [])) {
-            const label = String(c?.marca || "").trim()
-            if (!label) continue
-            map.set(normBrand(label), label)
+        const map = new Map();
+        for (const c of cards.value || []) {
+            const label = String(c?.marca || "").trim();
+            if (!label) continue;
+            map.set(normBrand(label), label);
         }
         return Array.from(map.entries())
             .map(([value, label]) => ({ value, label }))
-            .sort((a, b) => a.label.localeCompare(b.label, "it"))
-    })
+            .sort((a, b) => a.label.localeCompare(b.label, "it"));
+    });
 
     const yearBounds = computed(() => {
         const years = (cards.value || [])
             .map((c) => toInt(c?.anno_immatricolazione))
-            .filter(Boolean)
-        if (!years.length) return { min: null, max: null }
-        return { min: Math.min(...years), max: Math.max(...years) }
-    })
+            .filter(Boolean);
+        if (!years.length) return { min: null, max: null };
+        return { min: Math.min(...years), max: Math.max(...years) };
+    });
 
     const yearMinStart = computed(() => {
-        const { min, max } = yearBounds.value
-        if (!min || !max) return null
+        const { min, max } = yearBounds.value;
+        if (!min || !max) return null;
 
         // Finestra dinamica: mostra ultimi N anni rispetto al max disponibile
         // (evita liste infinite; resta 100% data-driven sul tenant)
-        const windowSize = 15
-        const candidate = max - windowSize
+        const windowSize = 15;
+        const candidate = max - windowSize;
 
         // non scendere sotto al minimo reale del tenant
-        return Math.max(min, candidate)
-    })
+        return Math.max(min, candidate);
+    });
 
     const priceBounds = computed(() => {
         const prices = (cards.value || [])
             .map((c) => toInt(c?.prezzo_vendita))
-            .filter((v) => v !== null)
+            .filter((v) => v !== null);
 
-        if (!prices.length) return { min: null, max: null }
-        return { min: Math.min(...prices), max: Math.max(...prices) }
-    })
+        if (!prices.length) return { min: null, max: null };
+        return { min: Math.min(...prices), max: Math.max(...prices) };
+    });
 
     const priceStep = computed(() => {
-        const { min, max } = priceBounds.value
-        if (min === null || max === null) return 5000
-        const range = max - min
+        const { min, max } = priceBounds.value;
+        if (min === null || max === null) return 5000;
+        const range = max - min;
 
         // step sensato in base al range (evita 40 opzioni)
-        if (range <= 30000) return 2500
-        if (range <= 80000) return 5000
-        if (range <= 200000) return 10000
-        return 25000
-    })
-
+        if (range <= 30000) return 2500;
+        if (range <= 80000) return 5000;
+        if (range <= 200000) return 10000;
+        return 25000;
+    });
 
     const yearMinOptions = computed(() => {
-        const { min, max } = yearBounds.value
-        const start = yearMinStart.value
+        const { min, max } = yearBounds.value;
+        const start = yearMinStart.value;
 
-        if (!min || !max || start === null) return [{ value: "", label: "Tutti" }]
+        if (!min || !max || start === null) return [{ value: "", label: "Tutti" }];
 
-        const out = [{ value: "", label: "Tutti" }]
+        const out = [{ value: "", label: "Tutti" }];
 
         // dal più recente al più vecchio (ma non oltre lo start calcolato)
         for (let y = max; y >= start; y--) {
-            out.push({ value: String(y), label: String(y) })
+            out.push({ value: String(y), label: String(y) });
         }
 
-        return out
-    })
-
+        return out;
+    });
 
     const priceMaxOptions = computed(() => {
-        const { min, max } = priceBounds.value
-        const step = priceStep.value
+        const { min, max } = priceBounds.value;
+        const step = priceStep.value;
 
         // fallback: se non abbiamo prezzi, lasciamo un set minimo
         if (min === null || max === null) {
-            return [{ value: "", label: "Nessun limite" }]
+            return [{ value: "", label: "Nessun limite" }];
         }
 
         // partiamo dal minimo "sensato" dello slug (arrotondato in giù)
-        const start = Math.max(step, roundDownTo(min, step))
-        const end = roundUpTo(max, step)
+        const start = Math.max(step, roundDownTo(min, step));
+        const end = roundUpTo(max, step);
 
-        const out = [{ value: "", label: "Nessun limite" }]
+        const out = [{ value: "", label: "Nessun limite" }];
 
         // Generiamo valori da start a end
         for (let v = start; v <= end; v += step) {
-            out.push({ value: String(v), label: `${v.toLocaleString("it-IT")} €` })
+            out.push({ value: String(v), label: `${v.toLocaleString("it-IT")} €` });
         }
 
-        return out
-    })
-
+        return out;
+    });
 
     const sortOptions = [
         { value: "year_desc", label: "Anno: più recenti" },
         { value: "price_asc", label: "Prezzo: crescente" },
         { value: "price_desc", label: "Prezzo: decrescente" },
         { value: "km_asc", label: "Km: crescenti" },
-    ]
+    ];
 
     // ============================
     // Filter + sort
     // ============================
     const filteredCards = computed(() => {
-        const brand = qBrand.value
-        const yearMin = toInt(qYearMin.value)
-        const priceMax = toInt(qPriceMax.value)
-        const sort = qSort.value || "year_desc"
+        const brand = qBrand.value;
+        const yearMin = toInt(qYearMin.value);
+        const priceMax = toInt(qPriceMax.value);
+        const sort = qSort.value || "year_desc";
 
         const arr = (cards.value || []).filter((c) => {
-            if (brand && normBrand(c?.marca) !== brand) return false
+            if (brand && normBrand(c?.marca) !== brand) return false;
 
-            const y = toInt(c?.anno_immatricolazione)
-            if (yearMin !== null && (y === null || y < yearMin)) return false
+            const y = toInt(c?.anno_immatricolazione);
+            if (yearMin !== null && (y === null || y < yearMin)) return false;
 
-            const p = toInt(c?.prezzo_vendita)
-            if (priceMax !== null && (p === null || p > priceMax)) return false
+            const p = toInt(c?.prezzo_vendita);
+            if (priceMax !== null && (p === null || p > priceMax)) return false;
 
-            return true
-        })
+            return true;
+        });
 
-        const byYear = (c) => toInt(c?.anno_immatricolazione) ?? -1
-        const byPrice = (c) => toInt(c?.prezzo_vendita) ?? Number.POSITIVE_INFINITY
-        const byKm = (c) => toInt(c?.km_certificati) ?? Number.POSITIVE_INFINITY
+        const byYear = (c) => toInt(c?.anno_immatricolazione) ?? -1;
+        const byPrice = (c) => toInt(c?.prezzo_vendita) ?? Number.POSITIVE_INFINITY;
+        const byKm = (c) => toInt(c?.km_certificati) ?? Number.POSITIVE_INFINITY;
 
-        if (sort === "price_asc") arr.sort((a, b) => byPrice(a) - byPrice(b))
-        else if (sort === "price_desc") arr.sort((a, b) => byPrice(b) - byPrice(a))
-        else if (sort === "km_asc") arr.sort((a, b) => byKm(a) - byKm(b))
-        else arr.sort((a, b) => byYear(b) - byYear(a))
+        if (sort === "price_asc") arr.sort((a, b) => byPrice(a) - byPrice(b));
+        else if (sort === "price_desc") arr.sort((a, b) => byPrice(b) - byPrice(a));
+        else if (sort === "km_asc") arr.sort((a, b) => byKm(a) - byKm(b));
+        else arr.sort((a, b) => byYear(b) - byYear(a));
 
-        return arr
-    })
+        return arr;
+    });
 
     // ============================
     // Data fetch (single)
     // ============================
     onMounted(async () => {
-        loading.value = true
-        error.value = null
+        loading.value = true;
+        error.value = null;
 
         try {
-            const raw = await fetchUsatoList(slug.value)
-            const list = Array.isArray(raw) ? raw : raw?.items || raw?.data || []
-            cards.value = mapListToCardUsatoDto(list)
+            const raw = await fetchUsatoList(slug.value);
+            const list = Array.isArray(raw) ? raw : raw?.items || raw?.data || [];
+            cards.value = mapListToCardUsatoDto(list);
         } catch (e) {
-            error.value = e?.message || "Errore caricamento usato"
-            cards.value = []
+            error.value = e?.message || "Errore caricamento usato";
+            cards.value = [];
         } finally {
-            loading.value = false
+            loading.value = false;
         }
-    })
+    });
 </script>
 
 <template>
-  <section class="page" :style="{ '--tenant-accent': settings.secondary_color || '#111' }">
+  <section
+    class="page"
+    :style="{ '--tenant-accent': settings.secondary_color || '#111' }"
+  >
     <div class="container">
-           <header class="page-head">
+      <header class="page-head">
         <div class="page-head-row">
           <h1 class="page-title">Vetture disponibili</h1>
 
@@ -262,8 +269,7 @@
         </div>
       </header>
 
-
-            <!-- FILTRI -->
+      <!-- FILTRI -->
       <div class="filters" v-if="!loading && !error">
         <!-- Desktop: sempre aperto. Mobile: apribile -->
         <div
@@ -280,7 +286,11 @@
                 @change="(e) => setQuery({ brand: e.target.value || '' })"
               >
                 <option value="">Tutte</option>
-                <option v-for="b in brandOptions" :key="b.value" :value="b.value">
+                <option
+                  v-for="b in brandOptions"
+                  :key="b.value"
+                  :value="b.value"
+                >
                   {{ b.label }}
                 </option>
               </select>
@@ -294,7 +304,11 @@
                 :value="qPriceMax"
                 @change="(e) => setQuery({ price_max: e.target.value || '' })"
               >
-                <option v-for="p in priceMaxOptions" :key="p.value" :value="p.value">
+                <option
+                  v-for="p in priceMaxOptions"
+                  :key="p.value"
+                  :value="p.value"
+                >
                   {{ p.label }}
                 </option>
               </select>
@@ -308,7 +322,11 @@
                 :value="qYearMin"
                 @change="(e) => setQuery({ year_min: e.target.value || '' })"
               >
-                <option v-for="y in yearMinOptions" :key="y.value" :value="y.value">
+                <option
+                  v-for="y in yearMinOptions"
+                  :key="y.value"
+                  :value="y.value"
+                >
                   {{ y.label }}
                 </option>
               </select>
@@ -320,9 +338,15 @@
               <select
                 class="control"
                 :value="qSort"
-                @change="(e) => setQuery({ sort: e.target.value || 'year_desc' })"
+                @change="
+                  (e) => setQuery({ sort: e.target.value || 'year_desc' })
+                "
               >
-                <option v-for="s in sortOptions" :key="s.value" :value="s.value">
+                <option
+                  v-for="s in sortOptions"
+                  :key="s.value"
+                  :value="s.value"
+                >
                   {{ s.label }}
                 </option>
               </select>
@@ -372,16 +396,36 @@
 
 <style scoped>
 /* Page */
+/* Page */
 .page {
+  /* mobile: ok così; desktop lo apriamo di più sotto */
   padding: clamp(1rem, 3vw, 2.2rem);
 }
 
-/* Container: solo max-width, NESSUN bordo/box */
+/* Container: full width vero */
 .container {
-  max-width: 96rem;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding-top: clamp(0.6rem, 1.6vw, 1.2rem);
 }
+
+/* Desktop: se vuoi “schermo intero” percepito, riduci padding laterale */
+@media (min-width: 60rem) {
+  .page {
+    padding-left: clamp(0.75rem, 1.5vw, 1.5rem);
+    padding-right: clamp(0.75rem, 1.5vw, 1.5rem);
+  }
+}
+
+/* Ultra-wide: quasi a filo (ma non 0, per non diventare brutto) */
+@media (min-width: 90rem) {
+  .page {
+    padding-left: clamp(0.5rem, 1vw, 1rem);
+    padding-right: clamp(0.5rem, 1vw, 1rem);
+  }
+}
+
 
 /* Header */
 .page-head {
@@ -398,7 +442,7 @@
   display: none; /* desktop hidden */
   height: clamp(3rem, 6vw, 3.4rem);
   padding: 0 1rem;
-  border: 0.12rem solid rgba(0,0,0,0.18);
+  border: 0.12rem solid rgba(0, 0, 0, 0.18);
   background: #fff;
   font-weight: 850;
   cursor: pointer;
@@ -409,7 +453,7 @@
   margin-top: 0.6rem;
   font-size: clamp(0.95rem, 1.3vw, 1.05rem);
   font-weight: 800;
-  color: rgba(0,0,0,0.70);
+  color: rgba(0, 0, 0, 0.7);
   text-align: left;
 }
 
@@ -422,7 +466,7 @@
   margin-top: 0.8rem;
   height: clamp(3rem, 6vw, 3.4rem);
   width: 100%;
-  border: 0.12rem solid rgba(0,0,0,0.18);
+  border: 0.12rem solid rgba(0, 0, 0, 0.18);
   background: #fff;
   font-weight: 850;
   cursor: pointer;
@@ -474,7 +518,7 @@
   align-items: start;
 
   padding: clamp(0.7rem, 1.5vw, 1.1rem) 0;
-  border-bottom: 0.12rem solid rgba(0,0,0,0.10);
+  border-bottom: 0.12rem solid rgba(0, 0, 0, 0.1);
 }
 
 /* Fields: CONTROL sopra, LABEL sotto */
@@ -488,7 +532,7 @@
 .label {
   font-size: clamp(0.85rem, 1.2vw, 0.95rem);
   font-weight: 800;
-  color: rgba(0,0,0,0.70);
+  color: rgba(0, 0, 0, 0.7);
 }
 
 .field:not(.field-meta) .label {
@@ -501,19 +545,19 @@
   height: clamp(3rem, 6vw, 3.4rem);
   padding: 0 var(--u-4);
 
-  border: 0.12rem solid rgba(0,0,0,0.18);
+  border: 0.12rem solid rgba(0, 0, 0, 0.18);
   background: #fff;
 
   font-size: clamp(0.95rem, 1.3vw, 1.05rem);
   font-weight: 650;
-  color: rgba(0,0,0,0.92);
+  color: rgba(0, 0, 0, 0.92);
 
   outline: none;
   border-radius: 0;
 }
 
 .control:focus {
-  border-color: rgba(0,0,0,0.45);
+  border-color: rgba(0, 0, 0, 0.45);
 }
 
 /* Colonna count/reset */
@@ -521,8 +565,6 @@
   min-width: 14rem;
   align-items: stretch;
 }
-
-
 
 .reset-btn {
   display: flex;
@@ -538,14 +580,13 @@
 }
 
 .reset-btn:hover:not(:disabled) {
-  border-color: rgba(0,0,0,0.45);
+  border-color: rgba(0, 0, 0, 0.45);
 }
 
 .reset-btn:disabled {
   opacity: 0.45;
   cursor: default;
 }
-
 
 /* States */
 .state {
@@ -563,27 +604,38 @@
 
 /* Responsive */
 @media (max-width: 80rem) {
-  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .field-meta { grid-column: 1 / -1; max-width: 22rem; }
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .filters-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .field-meta {
+    grid-column: 1 / -1;
+    max-width: 22rem;
+  }
 }
 
 @media (max-width: 60rem) {
-  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 40rem) {
-  .grid { grid-template-columns: 1fr; }
-  .filters-grid { grid-template-columns: 1fr; }
-  .field-meta { max-width: none; }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+  .field-meta {
+    max-width: none;
+  }
 }
 
 .count-label {
   text-align: center;
   white-space: nowrap;
 }
-
-
-
-
 </style>

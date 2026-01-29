@@ -1,45 +1,37 @@
 <template>
-  <div class="card" :style="{ fontFamily: settings.font_family }">
-
+  <router-link
+    class="card"
+    :style="{ fontFamily: settings.font_family }"
+    :to="`/index/${slug}/usato/${item.id_auto}`"
+  >
     <!-- IMMAGINE 5:4 -->
-    <router-link
-      class="image-wrapper aspect-5-4"
-      :to="`/index/${slug}/usato/${item.id_auto}`"
-    >
+    <div class="image-wrapper">
       <img
         :src="item.cover_url || PLACEHOLDER_IMG"
         @error="onImgError"
         alt="Foto auto"
-        class="main-img img-cover"
+        class="main-img"
       />
-    </router-link>
+
+      <!-- PREZZO (badge sull’immagine) -->
+      <div class="price-badge">
+        {{ (item.prezzo_vendita ?? 0).toLocaleString("it-IT") }} €
+      </div>
+    </div>
 
     <!-- INFO -->
     <div class="info">
-      <div class="text-block">
-        <h3 class="title">
-          {{ item.marca }} {{ item.allestimento }}
-        </h3>
+      <h3 class="title">{{ item.marca }} {{ item.allestimento }}</h3>
 
-        <div class="details">
-  <span>{{ item.anno_immatricolazione }}</span>
-  <span class="dot">•</span>
-  <span>{{ item.km_certificati.toLocaleString('it-IT') }} km</span>
-  <span class="dot">•</span>
-  <span>{{ item.prezzo_vendita.toLocaleString('it-IT') }} €</span>
-</div>
+      <div class="meta">
+        <span>{{ item.anno_immatricolazione }}</span>
+        <span class="sep">·</span>
+        <span>{{ (item.km_certificati ?? 0).toLocaleString("it-IT") }} km</span>
       </div>
 
-      <router-link
-        class="cta"
-        :style="{ backgroundColor: settings.tertiary_color }"
-        :to="`/index/${slug}/usato/${item.id_auto}`"
-      >
-        Dettagli
-      </router-link>
+      <div class="cta-inline">Dettagli →</div>
     </div>
-
-  </div>
+  </router-link>
 </template>
 
 <script setup>
@@ -53,12 +45,21 @@
         slug: { type: String, required: true },
         item: { type: Object, required: true }, // CardUsatoDto
         settings: { type: Object, required: true },
-    })
+    });
 
-    const PLACEHOLDER_IMG = "/placeholder-car.png"
+    const PLACEHOLDER_IMG = "/placeholder-car.png";
 
     function onImgError(e) {
-        e.target.src = PLACEHOLDER_IMG
+        const img = e.target;
+
+        // ✅ evita loop infinito
+        if (img.dataset.fallbackApplied === "1") return;
+        img.dataset.fallbackApplied = "1";
+
+        // ✅ stacca l’handler, così anche se il placeholder fallisce non rientra qui
+        img.onerror = null;
+
+        img.src = PLACEHOLDER_IMG;
     }
 </script>
 
@@ -74,74 +75,63 @@ CARD USATO — BLINDATA (design system compliant)
   flex-direction: column;
   overflow: hidden;
 
-  /* stacco visivo */
-  border-radius: 0;
-  border: 0.1rem solid rgba(0,0,0,0.06);
+  text-decoration: none;
+  color: inherit;
 
-  /* ombra più "soft" */
-  box-shadow:
-    0 0.4rem 1.2rem rgba(0,0,0,0.06),
-    0 0.1rem 0.4rem rgba(0,0,0,0.04);
+  border-radius: 0;
+  border: 0.06rem solid rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 
   transition:
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    transform 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .card:hover {
-  transform: translateY(-0.15rem);
-  box-shadow:
-    0 0.8rem 2.2rem rgba(0,0,0,0.10),
-    0 0.2rem 0.8rem rgba(0,0,0,0.06);
+  transform: translateY(-0.12rem);
+  border-color: rgba(0, 0, 0, 0.22);
 }
 
-
-/* =======================
-IMMAGINE
-======================= */
 .image-wrapper {
+  position: relative;
   width: 100%;
   aspect-ratio: 5 / 4;
   overflow: hidden;
-
-  /* cornice interna tipo "foto su card" */
-  padding: var(--u-3);
-  box-sizing: border-box;
-  background: rgba(0,0,0,0.02);
+  background: #f2f2f2;
 }
 
-.image-wrapper .main-img {
+.main-img {
   width: 100%;
   height: 100%;
-  aspect-ratio: 5 / 4;
   object-fit: cover;
   display: block;
-
-  border-radius: 0;
 }
 
+/* Badge prezzo sull’immagine */
+.price-badge {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
 
-/* =======================
-INFO
-======================= */
+  padding: 0.45rem 0.6rem;
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1;
+
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+}
+
 .info {
-  padding: var(--u-4);
+  padding: 0.9rem 0.95rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: var(--u-3);
-
-  height: clamp(10.5rem, 20vw, 13.5rem);
-}
-
-
-.text-block {
-  flex: 1;
-  overflow: hidden;
+  gap: 0.35rem;
 }
 
 .title {
-  font-size: clamp(1.15rem, 1.35vw, 1.45rem);
-  font-weight: 700;
+  font-size: clamp(1.05rem, 1.35vw, 1.2rem);
+  font-weight: 750;
   line-height: 1.18;
   margin: 0;
 
@@ -151,67 +141,31 @@ INFO
   overflow: hidden;
 }
 
-.details {
-  font-size: clamp(0.9rem, 1.05vw, 1rem);
-  color: rgba(0,0,0,0.72);
-  margin-top: var(--u-2);
-
+.meta {
+  font-size: 0.92rem;
+  opacity: 0.72;
   display: flex;
-  gap: var(--u-3);
   align-items: center;
+  gap: 0.45rem;
   flex-wrap: wrap;
 }
 
-
-
-
-/* =======================
-CTA
-======================= */
-.cta {
-  width: 100%;
-  height: clamp(2.6rem, 6vw, 3.2rem);
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-top: auto;
-
-  color: #fff;
-  font-weight: 700;
-  font-size: var(--fs-sm);
-  text-decoration: none;
-
-  border-radius: 0;
-  transition: transform 0.18s ease, opacity 0.18s ease;
+.sep {
+  opacity: 0.5;
 }
 
-.cta:hover {
-  opacity: 0.92;
-  transform: translateY(-0.05rem);
+/* CTA leggera (non barra) */
+.cta-inline {
+  margin-top: 0.35rem;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--tenant-accent, #111);
 }
 
-
-
-.cta:hover {
-  opacity: 0.85;
-}
-
-/* =======================
-MOBILE UX — CARD TAPPABILE
-======================= */
+/* Mobile tap feedback */
 @media (max-width: 48rem) {
   .card:active {
     transform: scale(0.99);
-    box-shadow:
-      0 0.3rem 1rem rgba(0,0,0,0.08),
-      0 0.1rem 0.4rem rgba(0,0,0,0.05);
   }
 }
-
-.dot {
-  opacity: 0.35;
-}
-
 </style>

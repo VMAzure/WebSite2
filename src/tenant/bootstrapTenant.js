@@ -9,6 +9,8 @@ let inFlightSlug = null
 let inFlightCompliance = null
 let inFlightComplianceSlug = null
 
+let inFlightTeam = null
+let inFlightTeamSlug = null
 
 export async function bootstrapTenant(route) {
     const tenant = useTenantStore()
@@ -18,23 +20,26 @@ export async function bootstrapTenant(route) {
 
     if (!slug) throw new Error("slug_missing")
 
-    // già pronto
-    if (tenant.slug === slug && tenant.settings) return tenant
+    // ✅ settings già in cache → avvia comunque le fetch "secondarie" (dedup già presente)
+    if (tenant.slug === slug && tenant.settings) {
+        kickOffComplianceLoad(tenant, slug)
+        kickOffTeamLoad(tenant, slug)
+        return tenant
+    }
 
-    // dedup
+    // ✅ dedup bootstrap
     if (inFlight && inFlightSlug === slug) return inFlight
 
     inFlightSlug = slug
     inFlight = (async () => {
         tenant.setTenant({ slug, source: resolved.source })
 
-        // ✅ prova prima via proxy locale /api (se configurato), poi fallback al full URL
+        // ✅ SETTINGS: proxy /api (se configurato), fallback full URL
         let data = null
-
         try {
             const r1 = await axios.get(
                 `/api/site-settings-public/${encodeURIComponent(slug)}`,
-                { timeout: 15000 }
+                { timeout: 15000 },
             )
             data = r1.data
         } catch (e1) {
@@ -46,7 +51,9 @@ export async function bootstrapTenant(route) {
         tenant.setSettings(data)
         applyTenantTheme(data)
 
+        // ✅ async, non blocca
         kickOffComplianceLoad(tenant, slug)
+        kickOffTeamLoad(tenant, slug)
 
         return tenant
     })()
@@ -63,11 +70,11 @@ export async function bootstrapTenant(route) {
             try {
                 let data = null
 
-                // ✅ proxy locale /api (se configurato), fallback full URL
+                // ✅ proxy /api, fallback full URL
                 try {
                     const r1 = await axios.get(
                         `/api/site-compliance-public/${encodeURIComponent(slug)}`,
-                        { timeout: 15000 }
+                        { timeout: 15000 },
                     )
                     data = r1.data
                 } catch (e1) {
@@ -86,6 +93,44 @@ export async function bootstrapTenant(route) {
         })()
     }
 
+    function kickOffTeamLoad(tenant, slug) {
+        // ✅ già caricato SOLO se è stato caricato PER QUESTO slug
+        if (tenant.slug === slug && tenant.teamLoadedSlug === slug) return
+
+        // dedup
+        if (inFlightTeam && inFlightTeamSlug === slug) return
+
+        inFlightTeamSlug = slug
+        inFlightTeam = (async () => {
+            try {
+                let payload = null
+
+                // ✅ proxy /api (ma forza errore su 404) → così parte il fallback
+                try {
+                    const r1 = await axios.get(
+                        `/api/users/team-pubblico/${encodeURIComponent(slug)}`,
+                        {
+                            timeout: 15000,
+                            validateStatus: (s) => s >= 200 && s < 300, // ✅ catch su 404
+                        },
+                    )
+                    payload = r1.data
+                } catch (e1) {
+                    const url = `https://api.azcore.it/users/team-pubblico/${encodeURIComponent(slug)}`
+                    const r2 = await axios.get(url, { timeout: 15000 })
+                    payload = r2.data
+                }
+
+                const teamArr = Array.isArray(payload?.team) ? payload.team : []
+                tenant.setTeam(teamArr, slug)
+            } catch (_) {
+                tenant.setTeam([], slug)
+            } finally {
+                inFlightTeam = null
+                inFlightTeamSlug = null
+            }
+        })()
+    }
 
     try {
         return await inFlight
@@ -96,17 +141,14 @@ export async function bootstrapTenant(route) {
 }
 
 function applyTenantTheme(settings) {
-    // se avevi già una tua applyTenantTheme altrove, qui non tocchiamo nulla.
-    // Non deve crashare mai.
     try {
         if (typeof document === "undefined") return
         if (!settings) return
-        // opzionale: metti qui solo cose SAFE (css vars) se ti servono
     } catch (_) { }
+
     const font = settings?.font_family
     if (font) {
         document.documentElement.style.setProperty("--dynamic-font", font)
         document.body.classList.add("dynamic-font")
     }
-
 }

@@ -12,7 +12,7 @@ const routes = [
     // alias (se qualche pezzo manda a /home)
     { path: "/home", redirect: { name: "Home" } },
 
-    // ✅ Home pulita (prod). In locale senza dominio configurato → andrà a tenant-not-configured.
+    // ✅ Home pulita (prod). In locale senza dominio configurato → tenant-not-configured
     {
         path: "/",
         name: "Home",
@@ -42,6 +42,23 @@ const routes = [
         meta: { tenantRequired: true, canonical: "/usato-vetrina" },
     },
 
+    // ✅ Contatti (pulito)
+    {
+        path: "/contatti",
+        name: "Contatti",
+        component: () => import("@/pages/ContattiPage.vue"),
+        meta: { tenantRequired: true, canonical: "/contatti" },
+    },
+
+    // ✅ NBT (pulito)
+    {
+        path: "/nbt",
+        name: "NbtPage",
+        component: () => import("@/pages/NbtPage.vue"),
+        meta: { tenantRequired: true, canonical: "/nbt" },
+    },
+
+
     // ✅ Dev/preview (con slug in path)
     {
         path: "/index/:slug",
@@ -68,37 +85,52 @@ const routes = [
         meta: { tenantRequired: true, canonical: "/usato-vetrina" },
     },
 
-    // ✅ pagina di sistema (NON deve dipendere dal tenant)
+    // ✅ Contatti preview/dev
+    {
+        path: "/index/:slug/contatti",
+        name: "ContattiPreview",
+        component: () => import("@/pages/ContattiPage.vue"),
+        meta: { tenantRequired: true, canonical: "/contatti" },
+    },
+
+    // ✅ NBT preview/dev
+    {
+        path: "/index/:slug/nbt",
+        name: "NbtPagePreview",
+        component: () => import("@/pages/NbtPage.vue"),
+        meta: { tenantRequired: true, canonical: "/nbt" },
+    },
+
+    // alias legacy /nbt -> canonical
+    {
+        path: "/nbt",
+        redirect: { name: "NoleggioNBT" },
+        meta: { tenantRequired: true },
+    },
+    {
+        path: "/index/:slug/nbt",
+        redirect: { name: "NoleggioNBTPreview" },
+        meta: { tenantRequired: true },
+    },
+
+    // ✅ pagine di sistema (NON devono dipendere dal tenant)
     {
         path: "/tenant-not-configured",
         name: "TenantNotConfigured",
         component: TenantNotConfigured,
         meta: { tenantRequired: false },
     },
-    {
-        path: "/privacy",
-        redirect: "/",
-        meta: { tenantRequired: true },
-    },
-    {
-        path: "/cookie-policy",
-        redirect: "/",
-        meta: { tenantRequired: true },
-    },
 
-    // fallback
+    // stub (non vogliamo url “legali” standalone qui)
+    { path: "/privacy", redirect: "/", meta: { tenantRequired: true } },
+    { path: "/cookie-policy", redirect: "/", meta: { tenantRequired: true } },
+
+    // ✅ fallback (DEVE essere l’ultima)
     {
         path: "/:pathMatch(.*)*",
         name: "NotFound",
         component: TenantNotConfigured,
         meta: { tenantRequired: false },
-    },
-
-    {
-        path: "/index/:slug/contatti",
-        name: "Contatti",
-        component: () => import("@/pages/ContattiPage.vue"),
-        meta: { tenantRequired: true },
     },
 ];
 
@@ -112,7 +144,6 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
     const tenant = useTenantStore();
-
     const resolved = await resolveTenantSlug(to);
 
     // se la route richiede tenant ma non ho slug -> errore
@@ -130,9 +161,7 @@ router.beforeEach(async (to) => {
         try {
             await bootstrapTenant(to);
         } catch (e) {
-            // ✅ NON buttare fuori: lo slug c'è, è solo un problema di fetch/settings
             console.error("[router] bootstrapTenant failed:", e);
-            // opzionale: pulisci settings per mostrare loading/errore in App.vue
             tenant.setSettings(null);
             return true;
         }

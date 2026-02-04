@@ -32,6 +32,13 @@ export default defineConfig({
                 rewrite: (path) => path.replace(/^\/api/, ""), // /api/users/... -> /users/...
             },
 
+            "/api/nbt": {
+                target: "https://api.azcore.it",
+                changeOrigin: true,
+                secure: false,
+            },
+
+
             // ✅ tutto il resto continua come prima
             "/api": {
                 target: "https://coreapi-production-ca29.up.railway.app",

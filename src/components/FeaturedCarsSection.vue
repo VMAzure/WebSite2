@@ -194,11 +194,11 @@
 
 
 .nav-btn:hover {
-  background: #f2f2f2;
+  opacity: 0.75;
 }
 
 .nav-btn:active {
-  transform: scale(0.96);
+  transform: scale(0.98);
 }
 
 @media (max-width: 48rem) {

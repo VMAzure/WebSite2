@@ -61,7 +61,14 @@
   <div class="page" :style="{ fontFamily: settings.font_family || 'inherit' }">
     <main class="main">
       <section v-if="isReady" class="contatti-page">
-        <header class="head"></header>
+        <header class="head">
+  <h1 class="title">Contatti</h1>
+  <p class="subtitle">
+    {{ companyName }}
+    <span v-if="settings.contact_address"> · {{ settings.contact_address }}</span>
+  </p>
+</header>
+
 
         <!-- GRID: contatti + chi siamo -->
         <div class="grid">
@@ -269,11 +276,24 @@
   padding: clamp(1rem, 3vw, 2rem);
 }
 
-.contatti-page {
+.contatti-page{
   width: 100%;
-  max-width: none;
-  margin: 0;
+  max-width: 1200px;  /* ✅ leggibilità premium */
+  margin: 0 auto;     /* ✅ centrato */
 }
+
+.main{
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.head{
+  margin-bottom: clamp(1.2rem, 3vw, 2rem);
+}
+
+.grid{
+  margin-bottom: clamp(1.6rem, 4vw, 2.6rem); /* ✅ stacco chiaro prima dello staff */
+}
+
 
 .head {
   margin-bottom: clamp(1rem, 3vw, 1.75rem);
@@ -304,15 +324,28 @@
   }
 }
 
-.card {
-  background: #ffffff;              /* ✅ bianco puro */
+.card{
+  background: #fff;
   border-radius: 0;
   padding: clamp(1rem, 2.5vw, 1.5rem);
-
-  border: 0;                         /* ❌ niente grigio */
-  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.07); /* ✅ come staff */
-
+  border: 1px solid rgba(0,0,0,0.06);         /* ✅ premium: bordo leggero */
+  box-shadow: 0 0.6rem 1.6rem rgba(0,0,0,0.05);/* ✅ shadow più soft */
   display: block;
+}
+
+.social{
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0,0,0,0.08);
+}
+
+.row{
+  padding: 0.15rem 0;
+}
+
+.link{
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 
@@ -352,15 +385,29 @@
 
 .link {
   line-height: 1.45;
-  text-decoration: none;
   color: inherit;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+
+  /* ✅ niente underline */
+  text-decoration: none;
+  border-bottom: 0;
+
+  /* resta chiaramente “cliccabile” senza sottolineatura */
+  opacity: 0.92;
+  cursor: pointer;
+
   width: fit-content;
 }
 
 .link:hover {
-  border-bottom-color: rgba(0, 0, 0, 0.55);
+  opacity: 0.7;
 }
+
+.link:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.25);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
 
 .loading {
   opacity: 0.7;
@@ -528,6 +575,21 @@
   object-fit: cover;
   border-radius: 999px;
   display: block;
+}
+
+.staff-name{
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.staff-role{
+  opacity: 0.75;
+}
+
+.staff-contacts{
+  margin-top: 0.35rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(0,0,0,0.08);
 }
 
 

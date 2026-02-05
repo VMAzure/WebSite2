@@ -66,6 +66,14 @@
                     <button class="btn" type="button" @click="openRequest(it)">
                       Calcola Canone
                     </button>
+
+                    <button
+                      class="btn"
+                      type="button"
+                      @click="openContactFromCard(it)"
+                    >
+                      Contattaci!
+                    </button>
                   </div>
                 </div>
               </div>
@@ -121,6 +129,14 @@
                     <button class="btn" type="button" @click="openRequest(it)">
                       Calcola Canone
                     </button>
+
+                    <button
+                      class="btn"
+                      type="button"
+                      @click="openContactFromCard(it)"
+                    >
+                      Contattaci!
+                    </button>
                   </div>
                 </div>
               </div>
@@ -128,44 +144,6 @@
           </div>
         </article>
       </div>
-
-          <!-- CTA FINALE (UNICA) — contatto progressivo (modal), non inline -->
-          <section v-if="items.length" class="cta">
-            <div class="ctaBox">
-              <div class="ctaText">
-                <h3 class="ctaTitle">Hai dubbi?</h3>
-                <p class="ctaDesc">
-                  Scrivici o chiamaci: ti aiutiamo a scegliere la soluzione
-                  migliore.
-                </p>
-
-                <div class="ctaContacts">
-      <a
-        v-if="settings.contact_phone"
-        class="ctaChip"
-        :href="`tel:${String(settings.contact_phone).replace(/\s+/g, '')}`"
-      >
-        {{ settings.contact_phone }}
-      </a>
-
-      <a
-        v-if="settings.contact_email"
-        class="ctaChip"
-        :href="`mailto:${settings.contact_email}`"
-      >
-        {{ settings.contact_email }}
-      </a>
-    </div>
-
-
-                <div class="ctaActionsInline">
-                  <button class="btn" type="button" @click="openContact">
-                    Invia richiesta
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
 
       <!-- MODAL CONTATTO (stesso pattern del modal noleggio) -->
       <div v-if="isContactOpen" class="backdrop" @click.self="closeContact">
@@ -347,7 +325,7 @@
 </template>
 
 <script setup>
-    import { ref, computed, onMounted, watch } from "vue";
+    import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
     import axios from "axios";
@@ -355,9 +333,7 @@
     const route = useRoute();
     const tenant = useTenantStore();
 
-    const slug = computed(() =>
-        (route.params.slug || tenant.slug || "").toString().trim(),
-    );
+    const slug = computed(() => (route.params.slug || tenant.slug || "").toString().trim());
     const settings = computed(() => tenant.settings || {});
 
     const loading = ref(true);
@@ -375,9 +351,11 @@
         const k = cardKey(it);
         activeDetailsKey.value = activeDetailsKey.value === k ? null : k;
     }
+
+    // ====== FORMAT EURO (interi) ======
     const EUR_INT = new Intl.NumberFormat("it-IT", {
         maximumFractionDigits: 0,
-        useGrouping: true, // ✅ forza 1.000 / 2.000 / 1.890
+        useGrouping: true,
     });
 
     function eurInt(v) {
@@ -386,15 +364,15 @@
         const normalized = raw
             .replace(/\s/g, "")
             .replace(/[€]/g, "")
-            .replace(/\./g, "") // separatore migliaia
-            .replace(/,/g, ".") // decimali
+            .replace(/\./g, "")
+            .replace(/,/g, ".")
             .replace(/[^\d.-]/g, "");
 
         const n = Number(normalized);
         return Number.isFinite(n) ? EUR_INT.format(Math.round(n)) : "0";
     }
 
-    // ====== CONTATTO (INLINE) ======
+    // ====== CONTATTO ======
     const contact = ref({
         nome: "",
         cognome: "",
@@ -404,26 +382,110 @@
     });
 
     const isContactValid = computed(() => {
-        const nomeOk = !!contact.value.nome?.trim()
-        const cognomeOk = !!contact.value.cognome?.trim()
-        const emailOk = !!contact.value.email?.trim()
-        const telOk = !!contact.value.telefono?.trim()
-        return nomeOk && cognomeOk && (emailOk || telOk)
-    })
-
+        const nomeOk = !!contact.value.nome?.trim();
+        const cognomeOk = !!contact.value.cognome?.trim();
+        const emailOk = !!contact.value.email?.trim();
+        const telOk = !!contact.value.telefono?.trim();
+        return nomeOk && cognomeOk && (emailOk || telOk);
+    });
 
     const contactLoading = ref(false);
     const contactError = ref("");
     const contactOk = ref("");
 
-    // ====== MODAL CONTATTO ======
+    // ====== MODAL STATES (UNA SOLA VOLTA) ======
     const isContactOpen = ref(false);
 
+    const isOpen = ref(false);
+    const selected = ref(null);
+
+    // ====== Scroll lock ROBUSTO (non blocca più la pagina per errore) ======
+    // ====== Scroll lock DETERMINISTICO (salva e ripristina lo stato precedente) ======
+    let scrollLocked = false;
+
+    let prevHtmlOverflow = "";
+    let prevBodyOverflow = "";
+    let prevBodyPaddingRight = "";
+
+    function getScrollbarWidth() {
+        return window.innerWidth - document.documentElement.clientWidth;
+    }
+
+    function lockScroll() {
+        if (scrollLocked) return;
+        scrollLocked = true;
+
+        prevHtmlOverflow = document.documentElement.style.overflow;
+        prevBodyOverflow = document.body.style.overflow;
+        prevBodyPaddingRight = document.body.style.paddingRight;
+
+        const sbw = getScrollbarWidth();
+        if (sbw > 0) {
+            document.body.style.paddingRight = `${sbw}px`;
+        }
+
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
+    }
+
+
+    function unlockScroll() {
+        if (!scrollLocked) return;
+        scrollLocked = false;
+
+        // ripristina ESATTAMENTE lo stato precedente
+        document.documentElement.style.overflow = prevHtmlOverflow;
+        document.body.style.overflow = prevBodyOverflow;
+        document.body.style.paddingRight = prevBodyPaddingRight;
+
+        prevHtmlOverflow = "";
+        prevBodyOverflow = "";
+        prevBodyPaddingRight = "";
+    }
+
+    function hardResetScrollStyles() {
+        // ripulisce eventuali residui da altre route/modal
+        document.documentElement.style.overflow = "";
+        document.body.style.overflow = "";
+        document.body.style.paddingRight = "";
+    }
+
+
+    const isAnyModalOpen = computed(() => isOpen.value || isContactOpen.value);
+
+    watch(
+        isAnyModalOpen,
+        (open) => {
+            if (open) lockScroll();
+            else unlockScroll();
+        },
+        { immediate: true }
+    );
+
+    onBeforeUnmount(() => {
+        // safety totale: anche se scrollLocked non è true, puliamo tutto
+        hardResetScrollStyles();
+    });
+
+
+    // ====== MODAL CONTATTO ======
     function openContact() {
         contactError.value = "";
         contactOk.value = "";
+        contactLoading.value = false;
         isContactOpen.value = true;
-        contactLoading.value = false
+    }
+
+    function openContactFromCard(it) {
+        // evita overlay doppi
+        if (isOpen.value) closeRequest();
+
+        const cat = String(it?.nbt_cat || it?.title || it?.name || "").trim();
+        if (cat && !contact.value.messaggio) {
+            contact.value.messaggio = `Info su: ${cat}`;
+        }
+
+        openContact();
     }
 
     function closeContact() {
@@ -459,40 +521,26 @@
                     email: contact.value.email || "",
                     telefono: contact.value.telefono || "",
                     messaggio: contact.value.messaggio || "",
-                    // opzionale
                     destinatario_email: settings.value?.contact_email || undefined,
                 },
                 {
-                    // fondamentale multi-tenant
                     params: { _slug: slug.value },
-                },
+                }
             );
 
             contactOk.value = "Richiesta inviata correttamente.";
-            contact.value = {
-                nome: "",
-                cognome: "",
-                email: "",
-                telefono: "",
-                messaggio: "",
-            };
+            contact.value = { nome: "", cognome: "", email: "", telefono: "", messaggio: "" };
             closeContact();
         } catch (e) {
             console.error("[NbtPage] submitContact failed:", e);
             const status = e?.response?.status;
-            contactError.value = status
-                ? `Errore invio (${status})`
-                : "Errore invio richiesta";
+            contactError.value = status ? `Errore invio (${status})` : "Errore invio richiesta";
         } finally {
             contactLoading.value = false;
         }
-
     }
 
     // ====== MODAL RICHIESTA NOLEGGIO ======
-    const isOpen = ref(false);
-    const selected = ref(null);
-
     const form = ref({
         startDate: "",
         endDate: "",
@@ -505,7 +553,6 @@
     const calcError = ref("");
     const calcResult = ref(null);
 
-    // ✅ REGOLA: azzeramento franchigia = FLAT 70€
     const AZZ_FRANCHIGIA_FLAT_EUR = 70;
 
     function openRequest(it) {
@@ -534,7 +581,6 @@
         return Date.UTC(y, (m || 1) - 1, d || 1);
     }
 
-    // 04 -> 11 = 7 giorni (fine esclusa)
     function diffDays(startISO, endISO) {
         const start = parseISOToUTC(startISO);
         const end = parseISOToUTC(endISO);
@@ -585,24 +631,13 @@
 
         const extraKm = Number(form.value.extraKm || 0);
         const extraKmCost = extraKm * Number(cat.costo_km || 0);
-        const driverCost = form.value.additionalDrivers
-            ? Number(cat.costo_conducente || 0)
-            : 0;
-        const franchiseCost = form.value.cancelFranchise
-            ? AZZ_FRANCHIGIA_FLAT_EUR
-            : 0;
+        const driverCost = form.value.additionalDrivers ? Number(cat.costo_conducente || 0) : 0;
+        const franchiseCost = form.value.cancelFranchise ? AZZ_FRANCHIGIA_FLAT_EUR : 0;
 
         const extra = extraKmCost + driverCost + franchiseCost;
         const total = base + extra;
 
-        calcResult.value = {
-            days,
-            base,
-            extra,
-            total,
-            kmIncluded,
-            label,
-        };
+        calcResult.value = { days, base, extra, total, kmIncluded, label };
     }
 
     // ====== LOAD CATEGORIE ======
@@ -618,9 +653,8 @@
         error.value = "";
 
         try {
-            const { data } = await axios.get(
-                `/api/nbt/${encodeURIComponent(slug.value)}/categorie`,
-            );
+            const { data } = await axios.get(`/api/nbt/${encodeURIComponent(slug.value)}/categorie`);
+
             const arr = Array.isArray(data)
                 ? data
                 : Array.isArray(data?.items)
@@ -642,7 +676,11 @@
         }
     }
 
-    onMounted(load);
+    onMounted(() => {
+        hardResetScrollStyles();
+        load();
+    });
+
     watch(slug, () => load());
 
     watch(
@@ -657,9 +695,10 @@
         () => {
             calcResult.value = null;
             calcError.value = "";
-        },
+        }
     );
 </script>
+
 
 <style scoped>
 .nbt {
@@ -667,8 +706,9 @@
 }
 
 .nbt {
-  padding: 24px 16px;
+  padding: 24px 16px 180px; /* spazio anti-footer overlay */
 }
+
 .head {
   margin-bottom: 12px;
 }
@@ -780,8 +820,10 @@
 
 .cardActions {
   display: flex;
-  justify-content: center; /* 👈 centrato */
-  margin-top: auto; /* spinto in basso */
+  justify-content: center;
+  gap: 10px; /* spazio tra bottoni */
+  flex-wrap: wrap; /* se su mobile non ci stanno, vanno a capo puliti */
+  margin-top: auto;
 }
 
 .cardTitle {
@@ -865,7 +907,6 @@
   font-weight: 700;
 }
 
-
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -893,7 +934,6 @@
 .field textarea:focus {
   border-color: rgba(0, 0, 0, 0.28);
 }
-
 
 .field textarea {
   border-radius: 0;
@@ -1215,9 +1255,28 @@
   }
 
   .btn[disabled] {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
 
+  .helpLink {
+    margin-top: 10px;
+    border: 0;
+    background: transparent;
+    padding: 6px 10px;
+    cursor: pointer;
+
+    font-weight: 700;
+    opacity: 0.75;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .helpLink:hover {
+    opacity: 1;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
 }
 </style>

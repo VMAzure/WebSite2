@@ -4,11 +4,37 @@
     class="nbt"
     :style="{
       fontFamily: settings?.font_family || 'inherit',
+      '--accent': settings?.tertiary_color || '#0f8a3a',
     }"
   >
     <header class="head">
       <h2 class="title">Noleggio da 1 a 30 giorni</h2>
     </header>
+
+    <!-- =========================
+         UX SOPRA (SOLO come funziona)
+         ========================= -->
+    <section
+      v-if="hasNbtUx && nbtUx?.howItWorks?.length"
+      class="nbtUx nbtUxTop"
+      aria-label="Come funziona il noleggio breve termine"
+    >
+      <div class="uxBox">
+        <div class="uxBlock">
+          <h3 class="uxTitle">Come funziona</h3>
+
+          <div class="uxSteps">
+            <div v-for="(s, i) in nbtUx.howItWorks" :key="i" class="uxStep">
+              <div class="uxStepN">{{ i + 1 }}</div>
+              <div class="uxStepTxt">
+                <div class="uxStepT">{{ s.title }}</div>
+                <div v-if="s.text" class="uxStepD">{{ s.text }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <div v-if="loading" class="state">Caricamento…</div>
     <div v-else-if="error" class="state error">{{ error }}</div>
@@ -25,10 +51,7 @@
           :key="it.id || it.key || it.name || JSON.stringify(it)"
           class="card"
         >
-          <div
-            class="cardFlip"
-            :class="{ flipped: activeDetailsKey === cardKey(it) }"
-          >
+          <div class="cardFlip" :class="{ flipped: activeDetailsKey === cardKey(it) }">
             <div class="cardInner">
               <!-- FRONT -->
               <div class="cardFace cardFront cardFacePad" aria-hidden="false">
@@ -55,24 +78,13 @@
                     </button>
                   </div>
 
-                  <p
-                    v-if="it.descrizione || it.subtitle || it.description"
-                    class="cardDesc"
-                  >
+                  <p v-if="it.descrizione || it.subtitle || it.description" class="cardDesc">
                     {{ it.descrizione || it.subtitle || it.description }}
                   </p>
 
                   <div class="cardActions">
                     <button class="btn" type="button" @click="openRequest(it)">
                       Calcola Canone
-                    </button>
-
-                    <button
-                      class="btn"
-                      type="button"
-                      @click="openContactFromCard(it)"
-                    >
-                      Contattaci!
                     </button>
                   </div>
                 </div>
@@ -84,11 +96,7 @@
                   <div class="cardTop">
                     <h3 class="cardTitle">{{ it.nbt_cat || "Categoria" }}</h3>
 
-                    <button
-                      class="detailsBtn"
-                      type="button"
-                      @click="toggleDetails(it)"
-                    >
+                    <button class="detailsBtn" type="button" @click="toggleDetails(it)">
                       Indietro
                     </button>
                   </div>
@@ -96,12 +104,9 @@
                   <div class="tariffeHead">
                     <div class="tariffeFranchigia" v-if="it.franchigia != null">
                       Franchigia:
-                      <strong
-                        :style="{
-                          color: settings?.tertiary_color || '#0f8a3a',
-                        }"
-                        >€ {{ eurInt(it.franchigia) }}</strong
-                      >
+                      <strong :style="{ color: settings?.tertiary_color || '#0f8a3a' }">
+                        € {{ eurInt(it.franchigia) }}
+                      </strong>
                     </div>
                   </div>
 
@@ -130,32 +135,63 @@
                       Calcola Canone
                     </button>
 
-                    <button
-                      class="btn"
-                      type="button"
-                      @click="openContactFromCard(it)"
-                    >
+                    <button class="btn" type="button" @click="openContactFromCard(it)">
                       Contattaci!
                     </button>
                   </div>
                 </div>
               </div>
+              <!-- /BACK -->
             </div>
           </div>
         </article>
       </div>
 
-      <!-- MODAL CONTATTO (stesso pattern del modal noleggio) -->
+      <!-- =========================
+           SOTTO LE CARD: "Cosa è incluso" + CTA
+           (stesso style, solo posizione)
+           ========================= -->
+ <section
+  v-if="hasNbtUx && (nbtUx?.included?.length || nbtUx?.cta)"
+  class="nbtUx nbtUxBottom"
+  aria-label="Informazioni e richiesta"
+>
+  <div class="uxBox">
+    <!-- usa uxCta come GRIGLIA 2-colonne su desktop (CSS già ce l’hai) -->
+    <div class="uxCta">
+      <!-- SINISTRA: Cosa è incluso (rosso) -->
+      <div v-if="nbtUx?.included?.length" class="uxBlock">
+        <h3 class="uxTitle">Cosa è incluso</h3>
+        <ul class="uxList">
+          <li v-for="(x, i) in nbtUx.included" :key="i">{{ x }}</li>
+        </ul>
+      </div>
+      <div v-else></div>
+
+      <!-- DESTRA: blocco blu + bottone sotto -->
+<div v-if="nbtUx?.cta" class="ctaRight">
+  <h3 class="uxTitle">{{ nbtUx.cta.title }}</h3>
+  <p v-if="nbtUx.cta.text" class="uxDesc">{{ nbtUx.cta.text }}</p>
+
+  <div class="uxCtaActions">
+    <button class="btn" type="button" @click="openContactFromCta">
+      {{ nbtUx.cta.buttonLabel || "Invia Richiesta" }}
+    </button>
+  </div>
+</div>
+
+      <div v-else></div>
+    </div>
+  </div>
+</section>
+
+
+      <!-- MODAL CONTATTO -->
       <div v-if="isContactOpen" class="backdrop" @click.self="closeContact">
         <div class="modal" role="dialog" aria-modal="true">
           <header class="modalHead">
             <div class="modalTitle">Invia richiesta</div>
-            <button
-              class="x"
-              type="button"
-              aria-label="Chiudi"
-              @click="closeContact"
-            >
+            <button class="x" type="button" aria-label="Chiudi" @click="closeContact">
               ✕
             </button>
           </header>
@@ -164,20 +200,12 @@
             <div class="row">
               <label class="field">
                 <span>Nome</span>
-                <input
-                  v-model.trim="contact.nome"
-                  type="text"
-                  autocomplete="given-name"
-                />
+                <input v-model.trim="contact.nome" type="text" autocomplete="given-name" />
               </label>
 
               <label class="field">
                 <span>Cognome</span>
-                <input
-                  v-model.trim="contact.cognome"
-                  type="text"
-                  autocomplete="family-name"
-                />
+                <input v-model.trim="contact.cognome" type="text" autocomplete="family-name" />
               </label>
             </div>
 
@@ -224,21 +252,17 @@
           </div>
         </div>
       </div>
+      <!-- /MODAL CONTATTO -->
     </div>
 
-    <!-- MODAL RICHIESTA NOLEGGIO (rimane com'era) -->
+    <!-- MODAL RICHIESTA NOLEGGIO -->
     <div v-if="isOpen" class="backdrop" @click.self="closeRequest">
       <div class="modal" role="dialog" aria-modal="true">
         <header class="modalHead">
           <div class="modalTitle">
             {{ selected?.nbt_cat || "Richiesta noleggio" }}
           </div>
-          <button
-            class="x"
-            type="button"
-            aria-label="Chiudi"
-            @click="closeRequest"
-          >
+          <button class="x" type="button" aria-label="Chiudi" @click="closeRequest">
             ✕
           </button>
         </header>
@@ -259,14 +283,9 @@
           <div v-if="calcResult" class="hint">
             <div><strong>Noleggio selezionato</strong></div>
             <div>
-              {{ calcResult.days }} giorni con {{ calcResult.kmIncluded }} km
-              totali inclusi
-              <span v-if="calcResult.label === 'settimana'">
-                (tariffa settimanale)</span
-              >
-              <span v-else-if="calcResult.label === 'mese'">
-                (tariffa mensile)</span
-              >
+              {{ calcResult.days }} giorni con {{ calcResult.kmIncluded }} km totali inclusi
+              <span v-if="calcResult.label === 'settimana'"> (tariffa settimanale)</span>
+              <span v-else-if="calcResult.label === 'mese'"> (tariffa mensile)</span>
             </div>
           </div>
 
@@ -286,17 +305,11 @@
           </label>
 
           <div v-if="selected?.franchigia != null" class="hint">
-            Franchigia danni:
-            <strong>€ {{ eurInt(selected.franchigia) }}</strong>
+            Franchigia danni: <strong>€ {{ eurInt(selected.franchigia) }}</strong>
           </div>
 
           <div class="modalActions">
-            <button
-              class="btn"
-              type="button"
-              @click="calcTotal"
-              :disabled="calcLoading"
-            >
+            <button class="btn" type="button" @click="calcTotal" :disabled="calcLoading">
               {{ calcLoading ? "Calcolo…" : "Calcola Totale" }}
             </button>
           </div>
@@ -304,23 +317,17 @@
           <div v-if="calcError" class="err">{{ calcError }}</div>
 
           <div v-if="calcResult" class="ok">
-            <div>
-              Periodo selezionato: <strong>{{ calcResult.days }}</strong> giorni
-            </div>
-            <div>
-              Tariffa base: <strong>€ {{ calcResult.base.toFixed(2) }}</strong>
-            </div>
-            <div>
-              Extra: <strong>€ {{ calcResult.extra.toFixed(2) }}</strong>
-            </div>
+            <div>Periodo selezionato: <strong>{{ calcResult.days }}</strong> giorni</div>
+            <div>Tariffa base: <strong>€ {{ calcResult.base.toFixed(2) }}</strong></div>
+            <div>Extra: <strong>€ {{ calcResult.extra.toFixed(2) }}</strong></div>
             <div style="margin-top: 8px">
-              <strong>Totale stimato:</strong> €
-              {{ calcResult.total.toFixed(2) }}
+              <strong>Totale stimato:</strong> € {{ calcResult.total.toFixed(2) }}
             </div>
           </div>
         </div>
       </div>
     </div>
+    <!-- /MODAL RICHIESTA NOLEGGIO -->
   </section>
 </template>
 
@@ -329,6 +336,27 @@
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
     import axios from "axios";
+    import { nbtListingDefault } from "@/content/nbtListingDefault";
+
+    // ====== BLOCCO UX (no BE/DB: default FE) ======
+    const nbtUx = computed(() => nbtListingDefault || null);
+
+    const hasNbtUx = computed(() => {
+        const ux = nbtUx.value;
+        return !!(ux && (ux.howItWorks?.length || ux.included?.length || ux.cta));
+    });
+
+    // CTA: apre il modal contatto già esistente, con messaggio precompilato
+    function openContactFromCta() {
+        if (isOpen.value) closeRequest();
+
+        const title = String(nbtUx.value?.cta?.title || "Richiesta informazioni").trim();
+        const msg = String(nbtUx.value?.cta?.text || "").trim();
+
+        contact.value.messaggio = msg ? `${title}\n${msg}` : title;
+
+        openContact();
+    }
 
     const route = useRoute();
     const tenant = useTenantStore();
@@ -393,16 +421,14 @@
     const contactError = ref("");
     const contactOk = ref("");
 
-    // ====== MODAL STATES (UNA SOLA VOLTA) ======
+    // ====== MODAL STATES ======
     const isContactOpen = ref(false);
 
     const isOpen = ref(false);
     const selected = ref(null);
 
-    // ====== Scroll lock ROBUSTO (non blocca più la pagina per errore) ======
-    // ====== Scroll lock DETERMINISTICO (salva e ripristina lo stato precedente) ======
+    // ====== Scroll lock deterministico ======
     let scrollLocked = false;
-
     let prevHtmlOverflow = "";
     let prevBodyOverflow = "";
     let prevBodyPaddingRight = "";
@@ -420,20 +446,16 @@
         prevBodyPaddingRight = document.body.style.paddingRight;
 
         const sbw = getScrollbarWidth();
-        if (sbw > 0) {
-            document.body.style.paddingRight = `${sbw}px`;
-        }
+        if (sbw > 0) document.body.style.paddingRight = `${sbw}px`;
 
         document.documentElement.style.overflow = "hidden";
         document.body.style.overflow = "hidden";
     }
 
-
     function unlockScroll() {
         if (!scrollLocked) return;
         scrollLocked = false;
 
-        // ripristina ESATTAMENTE lo stato precedente
         document.documentElement.style.overflow = prevHtmlOverflow;
         document.body.style.overflow = prevBodyOverflow;
         document.body.style.paddingRight = prevBodyPaddingRight;
@@ -444,12 +466,10 @@
     }
 
     function hardResetScrollStyles() {
-        // ripulisce eventuali residui da altre route/modal
         document.documentElement.style.overflow = "";
         document.body.style.overflow = "";
         document.body.style.paddingRight = "";
     }
-
 
     const isAnyModalOpen = computed(() => isOpen.value || isContactOpen.value);
 
@@ -463,10 +483,8 @@
     );
 
     onBeforeUnmount(() => {
-        // safety totale: anche se scrollLocked non è true, puliamo tutto
         hardResetScrollStyles();
     });
-
 
     // ====== MODAL CONTATTO ======
     function openContact() {
@@ -477,7 +495,6 @@
     }
 
     function openContactFromCard(it) {
-        // evita overlay doppi
         if (isOpen.value) closeRequest();
 
         const cat = String(it?.nbt_cat || it?.title || it?.name || "").trim();
@@ -523,13 +540,17 @@
                     messaggio: contact.value.messaggio || "",
                     destinatario_email: settings.value?.contact_email || undefined,
                 },
-                {
-                    params: { _slug: slug.value },
-                }
+                { params: { _slug: slug.value } }
             );
 
             contactOk.value = "Richiesta inviata correttamente.";
-            contact.value = { nome: "", cognome: "", email: "", telefono: "", messaggio: "" };
+            contact.value = {
+                nome: "",
+                cognome: "",
+                email: "",
+                telefono: "",
+                messaggio: "",
+            };
             closeContact();
         } catch (e) {
             console.error("[NbtPage] submitContact failed:", e);
@@ -699,35 +720,38 @@
     );
 </script>
 
-
 <style scoped>
 .nbt {
-  --nbtCardBg: #f5f5f5; /* stesso grigio tipo carousel */
-}
-
-.nbt {
-  padding: 24px 16px 180px; /* spazio anti-footer overlay */
+  --nbtCardBg: #f5f5f5;
+  padding: 24px 16px 40px;
 }
 
 .head {
   margin-bottom: 12px;
 }
+
 .title {
   margin: 0;
   font-size: 22px;
 }
+
 .state {
   padding: 12px 0;
   opacity: 0.8;
 }
+
 .state.error {
   opacity: 1;
 }
 
+/* =========================
+   GRID + CARD
+   ========================= */
 .grid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 16px; /* prima 12px */
+  gap: 16px;
+  margin-bottom: 18px;
 }
 
 .card {
@@ -737,23 +761,19 @@
   padding: 0;
 }
 
+@media (min-width: 1024px) {
+  .card {
+    grid-column: span 4; /* 3 per row */
+  }
+}
+
 .cardFlip {
   background: var(--nbtCardBg);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 0;
   overflow: hidden;
-
-  /* prima: 360 / 520 -> rendiamola “in piedi” */
   min-height: 420px;
-
   perspective: 1200px;
-}
-
-@media (min-width: 1024px) {
-  /* prima 520px */
-  .cardFlip {
-    min-height: 420px;
-  }
 }
 
 .cardInner {
@@ -761,7 +781,6 @@
   width: 100%;
   height: 100%;
   min-height: inherit;
-
   transform-style: preserve-3d;
   transition: transform 260ms ease;
 }
@@ -782,48 +801,47 @@
 .cardFront {
   transform: rotateY(0deg);
 }
+
 .cardBack {
   transform: rotateY(180deg);
 }
 
-/* BACK: riduci aria e tieni CTA più vicina alle tariffe */
-.cardBack .cardActions {
-  margin-top: 14px; /* invece di auto */
-  padding-bottom: 8px;
+.cardFacePad {
+  padding-top: 12px;
 }
 
-.cardBack .tariffeHead {
-  display: flex;
-  justify-content: center; /* franchigia centrata come il titolo */
-  margin-top: 6px;
-  margin-bottom: 10px;
-}
-
-.cardBack .tariffeFranchigia {
-  opacity: 0.9;
+.cardImg {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  border-radius: 0;
+  display: block;
+  background: var(--nbtCardBg);
+  max-height: 220px;
 }
 
 @media (min-width: 1024px) {
-  .card {
-    grid-column: span 3;
+  .cardImg {
+    max-height: 200px;
+    margin-bottom: 0.5rem;
   }
 }
 
-.cardTitle {
-  margin: 0 0 6px;
-  font-size: 16px;
-}
-.cardDesc {
-  margin: 0 0 12px;
-  opacity: 0.8;
+.cardBody {
+  padding: 1rem 0.85rem 0.85rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
 }
 
-.cardActions {
+.cardTop {
   display: flex;
-  justify-content: center;
-  gap: 10px; /* spazio tra bottoni */
-  flex-wrap: wrap; /* se su mobile non ci stanno, vanno a capo puliti */
-  margin-top: auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .cardTitle {
@@ -831,6 +849,21 @@
   text-align: center;
   font-size: clamp(1rem, 4.2vw, 1.1rem);
   font-weight: 700;
+}
+
+.cardDesc {
+  margin: 0;
+  text-align: center;
+  opacity: 0.8;
+  font-size: clamp(0.92rem, 3.7vw, 1rem);
+}
+
+.cardActions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: auto;
 }
 
 .btn {
@@ -841,11 +874,91 @@
   text-decoration: none;
   color: inherit;
 }
+
 .btn[disabled] {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+.detailsBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+.detailsBtn:hover {
+  opacity: 0.75;
+}
+
+/* BACK tariffe */
+.cardBack .cardBody {
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.cardBack .cardActions {
+  margin-top: 14px;
+  padding-bottom: 8px;
+}
+
+.tariffeHead {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+  margin-bottom: 10px;
+}
+
+.tariffeFranchigia {
+  opacity: 0.9;
+}
+
+.tariffeGrid {
+  display: grid;
+  gap: 0.45rem;
+  width: min(560px, 100%);
+  margin: 0 auto;
+}
+
+.r {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.45rem 0.55rem;
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.k {
+  font-size: clamp(0.92rem, 3.6vw, 1rem);
+  font-weight: 600;
+  text-align: left;
+}
+
+.v {
+  font-size: clamp(0.95rem, 3.8vw, 1.02rem);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.s {
+  font-size: clamp(0.85rem, 3.3vw, 0.95rem);
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+/* =========================
+   MODAL
+   ========================= */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -879,32 +992,22 @@
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
 }
 
 .modalTitle {
-  font-weight: 600;
+  font-weight: 700;
 }
+
 .x {
   border: 0;
   background: transparent;
   font-size: 18px;
   cursor: pointer;
 }
+
 .modalBody {
   padding: 16px;
-}
-
-.field span {
-  font-size: 13px;
-  opacity: 0.85;
-}
-
-.modalHead {
-  background: #fff;
-}
-
-.modalTitle {
-  font-weight: 700;
 }
 
 .row {
@@ -914,11 +1017,22 @@
   margin-bottom: 12px;
 }
 
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-bottom: 12px;
+}
+
+.field span {
+  font-size: 13px;
+  opacity: 0.85;
 }
 
 .field input,
@@ -946,87 +1060,11 @@
   gap: 10px;
   margin: 8px 0;
 }
+
 .modalActions {
   display: flex;
   justify-content: flex-end;
   margin-top: 12px;
-}
-.err {
-  margin-top: 10px;
-}
-.ok {
-  margin-top: 10px;
-}
-
-@media (max-width: 640px) {
-  .row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.cardTop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.detailsBtn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: #fff;
-  padding: 8px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  white-space: nowrap;
-  z-index: 2;
-}
-.detailsBtn:hover {
-  opacity: 0.75;
-}
-.cardBack .tariffeGrid {
-  width: min(560px, 100%);
-  margin: 0 auto;
-}
-
-.cardBack .r {
-  padding: 0.4rem 0.55rem;
-  background: rgba(0, 0, 0, 0.015); /* un pelo meno grigio */
-}
-
-.cardBody {
-  padding: 1rem 0.85rem 0.85rem; /* sopra un filo di più */
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.cardBack .cardBody {
-  align-items: center;
-  text-align: center;
-
-  justify-content: center; /* ✅ CENTRO VERTICALE vero */
-  gap: 12px; /* respiro uniforme tra blocchi */
-}
-
-.cardTitle {
-  margin: 0;
-  text-align: center;
-  font-size: clamp(1rem, 4.2vw, 1.1rem);
-  font-weight: 700;
-}
-
-.cardDesc {
-  margin: 0;
-  text-align: center;
-  opacity: 0.8;
-  font-size: clamp(0.92rem, 3.7vw, 1rem);
 }
 
 .hint {
@@ -1038,245 +1076,136 @@
   line-height: 1.35;
 }
 
+.err {
+  margin-top: 10px;
+}
+
+.ok {
+  margin-top: 10px;
+}
+
 /* =========================
-   DETTAGLI TARIFFE (mobile-first)
+   UX (TOP + BOTTOM)
    ========================= */
-.tariffe {
-  margin-top: 1.25rem;
+.nbtUxTop {
+  margin: 8px 0 18px;
 }
 
-.tariffeTitle {
-  margin: 0 0 0.75rem;
-  font-size: clamp(1.05rem, 4.2vw, 1.25rem);
-  font-weight: 700;
+.nbtUxBottom {
+  margin-top: 18px;
 }
 
-.tariffeList {
+.uxBox {
   display: grid;
-  gap: 0.75rem;
+  gap: 16px;
 }
 
-.tariffeCard {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 0 !important;
-  overflow: hidden;
-  background: #fff;
-  padding: 0rem;
-}
-
-.tariffeHead {
-  gap: 0.25rem; /* prima 0.35rem */
-  margin-bottom: 0.55rem; /* prima 0.75rem */
-}
-
-.tariffeName {
-  font-size: clamp(1rem, 4vw, 1.1rem);
-  font-weight: 700;
-}
-
-.tariffeFranchigia {
-  font-size: clamp(0.9rem, 3.6vw, 1rem);
-  opacity: 0.85;
-}
-
-.tariffeGrid {
-  display: grid;
-  gap: 0.45rem;
-  width: min(560px, 100%);
-  margin: 0 auto;
-}
-
-.r {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 0.5rem;
-  align-items: baseline;
-
-  /* prima 0.55rem 0.6rem */
-  padding: 0.45rem 0.55rem;
-
-  border-radius: 0rem;
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.k {
-  font-size: clamp(0.92rem, 3.6vw, 1rem);
-  font-weight: 600;
-  text-align: left; /* ✅ attaccato come i prezzi */
-}
-
-.v {
-  font-size: clamp(0.95rem, 3.8vw, 1.02rem);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.s {
-  font-size: clamp(0.85rem, 3.3vw, 0.95rem);
-  opacity: 0.8;
-  white-space: nowrap;
-}
-
-/* CTA */
-.cta {
-  margin-top: 1.25rem;
-}
-
-.ctaBox {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  background: #fff;
-  border-radius: 0;
-  padding: clamp(1rem, 4.2vw, 1.25rem);
-  display: grid;
-  gap: 0.85rem;
-}
-
-.ctaTitle {
-  margin: 0 0 0.35rem;
-  font-size: clamp(1.05rem, 4.4vw, 1.25rem);
-  font-weight: 800;
-}
-
-.ctaDesc {
+.uxTitle {
   margin: 0;
-  opacity: 0.85;
-  font-size: clamp(0.95rem, 3.8vw, 1.05rem);
-  line-height: 1.35;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
-.ctaContacts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem 0.9rem;
-  margin-top: 0.75rem;
+.uxBlock {
+  display: grid;
+  gap: 10px;
 }
 
-.ctaChip {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 12px;
+.uxSteps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.uxStep {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.uxStepN {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
   border-radius: 999px;
   border: 1px solid rgba(0, 0, 0, 0.12);
   background: #fff;
-  color: inherit;
-  text-decoration: none; /* look premium */
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.ctaChip:hover {
-  border-color: rgba(0, 0, 0, 0.2);
+.uxStepT {
+  font-weight: 800;
+  font-size: 14px;
 }
 
-.ctaLink {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  font-size: clamp(0.95rem, 3.8vw, 1.02rem);
+.uxStepD {
+  margin-top: 2px;
+  opacity: 0.82;
+  line-height: 1.35;
+  font-size: 13px;
 }
 
-.ctaForm {
+.uxList {
+  margin: 0;
+  padding-left: 18px;
   display: grid;
-  gap: 0.25rem;
-  max-width: 720px;
+  gap: 6px;
+  opacity: 0.9;
+  font-size: 14px;
 }
 
-.ctaActions {
+.uxCta {
+  display: grid;
+  gap: 10px;
+}
+
+.uxDesc {
+  margin: 6px 0 0;
+  opacity: 0.85;
+  line-height: 1.35;
+  font-size: 14px;
+}
+
+.uxCtaActions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 6px;
 }
 
-/* desktop layout */
+@media (min-width: 768px) {
+  .uxSteps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 1024px) {
-  .tariffeList {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
+  .uxSteps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .tariffeCard {
-    padding: 1rem;
+  .uxCta {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 14px;
   }
 
-  .card {
-    grid-column: span 4;
-    flex-direction: column;
-  }
+  /* CTA a destra: allinea titolo/testo/bottone a destra */
+.ctaRight {
+  text-align: right;
+  justify-self: end;
+}
 
-  .cardImg {
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    object-fit: contain;
-    border-radius: 0;
-    display: block;
-    background: var(--nbtCardBg);
+/* stacca un po' il bottone dal testo */
+.ctaRight .uxCtaActions {
+  margin-top: 10px;
+}
 
-    /* aggiunte */
-    max-height: 220px;
-  }
-
-  @media (min-width: 1024px) {
-    .cardImg {
-      max-height: 200px;
-      margin-bottom: 0.5rem; /* prima 0.65rem */
-    }
-  }
-
-  .ctaBox {
-    grid-template-columns: 1fr 1fr;
-    align-items: start;
-    gap: 1rem;
-  }
-
-  .ctaActions {
-    justify-content: flex-end;
-  }
-
-  .ctaActionsInline {
-    margin-top: 0.9rem;
-    display: flex;
-    justify-content: flex-start;
-  }
-
-  /* il modal usa .modalActions già definito;
-   qui uniformiamo l’allineamento come CTA */
-  .modalActions {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 12px;
-  }
-
-  .cardFront .cardImg {
-    margin-top: 10px;
-  }
-
-  .cardFacePad {
-    padding-top: 12px;
-  }
-
-  .btn[disabled] {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .helpLink {
-    margin-top: 10px;
-    border: 0;
-    background: transparent;
-    padding: 6px 10px;
-    cursor: pointer;
-
-    font-weight: 700;
-    opacity: 0.75;
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .helpLink:hover {
-    opacity: 1;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    text-decoration-thickness: 1px;
-  }
 }
 </style>

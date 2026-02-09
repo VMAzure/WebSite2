@@ -18,7 +18,25 @@
   >
     <!-- ===== MOBILE HEADER ===== -->
     <div class="mobile-header">
-      <button class="hamburger" @click="open = !open">
+      <!-- ✅ BRAND: appare solo quando la navbar è fixed (scroll) -->
+      <router-link
+        v-if="isFixed"
+        class="navbrand"
+        :to="isDev ? `/index/${slug}` : `/`"
+        aria-label="Home"
+      >
+        <img
+          v-if="settings?.logo_web"
+          :src="settings.logo_web"
+          class="navbrandLogo"
+          alt="logo"
+        />
+        <span v-else class="navbrandText">
+          {{ settings?.company_name || settings?.meta_title || slug || "Home" }}
+        </span>
+      </router-link>
+
+      <button class="hamburger" @click="open = !open" aria-label="Apri menu">
         <i class="fa-solid" :class="open ? 'fa-xmark' : 'fa-bars'"></i>
       </button>
     </div>
@@ -68,9 +86,7 @@
 
     const isHome = computed(() => {
         const p = String(route.path || "").toLowerCase();
-        const s = String(props.slug || route.params?.slug || "")
-            .trim()
-            .toLowerCase();
+        const s = String(props.slug || route.params?.slug || "").trim().toLowerCase();
 
         if (p === "/") return true;
         if (s && (p === `/index/${s}` || p === `/index/${s}/`)) return true;
@@ -135,7 +151,7 @@
     watch([isFixed, isHome, open], () => applyBodyOffset());
 
     const usatoVetrinaPath = computed(() =>
-        isDev.value ? `/index/${props.slug}/usato-vetrina` : `/usato-vetrina`,
+        isDev.value ? `/index/${props.slug}/usato-vetrina` : `/usato-vetrina`
     );
 
     const menuItems = computed(() => {
@@ -191,7 +207,6 @@
 
 /* ============================================
   HOME — OVERLAY VERO (hero sotto)
-  ✅ fuori flusso + top sotto la TopBar
 ============================================ */
 .navbar-overlay {
   position: absolute;
@@ -206,9 +221,8 @@
   border-bottom: 0 !important;
 }
 
-/* ✅ figli trasparenti (niente “bianco”) */
-.navbar-overlay .mobile-header,
-.navbar-overlay ul {
+/* ✅ in overlay: trasparente SOLO la barra (header), NON il menu aperto */
+.navbar-overlay .mobile-header {
   background: transparent !important;
   background-color: transparent !important;
 }
@@ -278,9 +292,10 @@ ul.open {
 ============================================ */
 .mobile-header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between; /* ✅ brand a sinistra, hamburger a destra */
   align-items: center;
   padding: clamp(0.8rem, 4vw, 1.2rem);
+  gap: 0.75rem;
 }
 
 .hamburger {
@@ -289,6 +304,57 @@ ul.open {
   background: none;
   border: none;
   cursor: pointer;
+}
+
+/* ✅ BRAND (solo quando isFixed) */
+.navbrand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.navbrandLogo {
+  height: 1.6rem; /* stile barra come reference */
+  max-width: 10rem;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 0.25rem 0.9rem rgba(0, 0, 0, 0.35));
+}
+
+.navbrandText {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0.25rem 0.9rem rgba(0, 0, 0, 0.55);
+}
+
+/* =========================================================
+  ✅ FIX SOLO MOBILE: il menu aperto deve avere fondo scuro
+  - NON tocca desktop
+  - NON cambia layout/colonne
+  - Funziona sia in overlay home che fuori
+========================================================= */
+@media (max-width: 63.99rem) {
+  /* pannello dropdown sotto la barra (così non “sporchi” la pagina sotto) */
+  ul {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 3200;
+  }
+
+  ul.open {
+    background: rgba(0, 0, 0, 0.92) !important;
+    background-color: rgba(0, 0, 0, 0.92) !important;
+    backdrop-filter: blur(0.6rem);
+    -webkit-backdrop-filter: blur(0.6rem);
+  }
 }
 
 /* ============================================
@@ -306,6 +372,12 @@ ul.open {
     align-items: center;
     gap: 3rem;
     padding: 1.4rem 0;
+
+    /* desktop: niente pannello assoluto */
+    position: static;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .mobile-item,

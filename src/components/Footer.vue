@@ -1,207 +1,157 @@
 <template>
-  <footer class="footer" :style="{ fontFamily: settings.font_family }">
-    <!-- LINEA SUPERIORE COLORATA -->
-    <div
-      class="divider"
-      :style="{ backgroundColor: settings.tertiary_color }"
-    ></div>
+  <footer class="footer" :style="{ fontFamily: settings?.font_family || 'inherit' }">
+    <div class="divider" :style="{ backgroundColor: settings?.tertiary_color || '#0f8a3a' }"></div>
 
-    <!-- CONTENUTO -->
     <div class="wrapper">
-      <div class="content">
-        <!-- LOGO -->
-        <div class="col logo-col">
-          <img
-            v-if="settings.logo_web"
-            :src="settings.logo_web"
-            class="logo"
-            alt="Logo"
-          />
+      <div class="grid">
+        <!-- LOGO / BRAND -->
+        <div class="col brand">
+          <img v-if="settings?.logo_web" :src="settings.logo_web" class="logo" alt="Logo" />
+          <div v-else class="brandName">{{ settings?.meta_title || settings?.company_name || "" }}</div>
+
+          <p v-if="settings?.meta_description" class="brandDesc">
+            {{ settings.meta_description }}
+          </p>
         </div>
 
-        <!-- INFO -->
-        <div class="col info-col">
-          <h3>Sede</h3>
+        <!-- SEDE / CONTATTI -->
+        <div class="col info">
+          <h3 class="h">Sede</h3>
 
-          <p v-if="settings.contact_address">{{ settings.contact_address }}</p>
+          <ul class="list">
+            <li v-if="settings?.contact_address" class="row">
+              <span class="icon"><i class="fa-solid fa-location-dot"></i></span>
+              <span class="text">{{ settings.contact_address }}</span>
+            </li>
 
-          <p v-if="settings.contact_phone">
-            Telefono: <strong>{{ settings.contact_phone }}</strong>
-          </p>
+            <li v-if="settings?.contact_phone" class="row">
+              <span class="icon"><i class="fa-solid fa-phone"></i></span>
+              <a class="link" :href="`tel:${settings.contact_phone}`">{{ settings.contact_phone }}</a>
+            </li>
 
-          <p v-if="settings.contact_email">
-            Email: <strong>{{ settings.contact_email }}</strong>
-          </p>
+            <li v-if="settings?.contact_email" class="row">
+              <span class="icon"><i class="fa-solid fa-envelope"></i></span>
+              <a class="link" :href="`mailto:${settings.contact_email}`">{{ settings.contact_email }}</a>
+            </li>
+          </ul>
 
-          <div class="legal-links" v-if="showLegalLinks">
-            <a
-              v-if="privacyLink"
-              :href="privacyLink"
-              target="_blank"
-              rel="noopener"
-              >Privacy</a
-            >
+          <a
+            v-if="settings?.contact_address"
+            class="mapsLink"
+            :href="mapsHref"
+            target="_blank"
+            rel="noopener"
+            aria-label="Indicazioni"
+          >
+            <i class="fa-solid fa-diamond-turn-right"></i>
+            <span>Indicazioni</span>
+          </a>
+        </div>
 
-            <span v-if="privacyLink && cookieLink" class="dot">·</span>
-            <a
-              v-if="cookieLink"
-              :href="cookieLink"
-              target="_blank"
-              rel="noopener"
-              >Cookie Policy</a
-            >
+        <!-- LEGAL -->
+        <div class="col legal">
+          <h3 class="h">Legal</h3>
 
-            <span v-if="(privacyLink || cookieLink) && showPrefs" class="dot"
-              >·</span
-            >
-            <button
-              v-if="showPrefs"
-              class="prefs-link"
-              @click="openCookieBanner"
-            >
+          <div class="legalLinks" v-if="showLegalLinks">
+            <a v-if="privacyLink" :href="privacyLink" target="_blank" rel="noopener">Privacy</a>
+            <a v-if="cookieLink" :href="cookieLink" target="_blank" rel="noopener">Cookie Policy</a>
+
+            <button v-if="showPrefs" class="prefsLink" @click="openCookieBanner">
               Preferenze cookie
             </button>
           </div>
-        </div>
 
-        <!-- MAPPA -->
-        <div
-          class="col map-col footer-map"
-          v-if="settings.contact_address && canShowMap"
-        >
-          <div :id="mapId" class="map-frame"></div>
-        </div>
-
-        <div
-          class="col map-col footer-map"
-          v-else-if="settings.contact_address"
-        >
-          <div
-            class="map-frame map-placeholder"
-            role="button"
-            tabindex="0"
-            @click="openCookieBanner"
-            @keydown.enter.prevent="openCookieBanner"
-            @keydown.space.prevent="openCookieBanner"
-          >
-            Per visualizzare la mappa devi accettare i cookie.
-            <span class="map-cta">Apri preferenze</span>
-          </div>
+          <p v-else class="muted">Nessun link legale configurato.</p>
         </div>
 
         <!-- SOCIAL -->
-        <div class="col social-col">
-          <a
-            v-if="settings.facebook_url"
-            :href="settings.facebook_url"
-            target="_blank"
-          >
-            <i class="fa-brands fa-facebook"></i>
-          </a>
-          <a
-            v-if="settings.instagram_url"
-            :href="settings.instagram_url"
-            target="_blank"
-          >
-            <i class="fa-brands fa-instagram"></i>
-          </a>
-          <a
-            v-if="settings.tiktok_url"
-            :href="settings.tiktok_url"
-            target="_blank"
-          >
-            <i class="fa-brands fa-tiktok"></i>
-          </a>
-          <a
-            v-if="settings.youtube_url"
-            :href="settings.youtube_url"
-            target="_blank"
-          >
-            <i class="fa-brands fa-youtube"></i>
-          </a>
-          <a
-            v-if="settings.linkedin_url"
-            :href="settings.linkedin_url"
-            target="_blank"
-          >
-            <i class="fa-brands fa-linkedin"></i>
-          </a>
-          <a v-if="settings.x_url" :href="settings.x_url" target="_blank">
-            <i class="fa-brands fa-x-twitter"></i>
-          </a>
-          <a
-            v-if="settings.whatsapp_url"
-            :href="settings.whatsapp_url"
-            target="_blank"
-          >
-            <i class="fa-brands fa-whatsapp"></i>
-          </a>
+        <div class="col social">
+          <h3 class="h">Seguici</h3>
+
+          <div class="socialRow">
+            <a v-if="settings?.facebook_url" :href="settings.facebook_url" target="_blank" rel="noopener" aria-label="Facebook">
+              <i class="fa-brands fa-facebook"></i>
+            </a>
+            <a v-if="settings?.instagram_url" :href="settings.instagram_url" target="_blank" rel="noopener" aria-label="Instagram">
+              <i class="fa-brands fa-instagram"></i>
+            </a>
+            <a v-if="settings?.tiktok_url" :href="settings.tiktok_url" target="_blank" rel="noopener" aria-label="TikTok">
+              <i class="fa-brands fa-tiktok"></i>
+            </a>
+            <a v-if="settings?.youtube_url" :href="settings.youtube_url" target="_blank" rel="noopener" aria-label="YouTube">
+              <i class="fa-brands fa-youtube"></i>
+            </a>
+            <a v-if="settings?.linkedin_url" :href="settings.linkedin_url" target="_blank" rel="noopener" aria-label="LinkedIn">
+              <i class="fa-brands fa-linkedin"></i>
+            </a>
+            <a v-if="settings?.x_url" :href="settings.x_url" target="_blank" rel="noopener" aria-label="X">
+              <i class="fa-brands fa-x-twitter"></i>
+            </a>
+            <a v-if="settings?.whatsapp_url" :href="settings.whatsapp_url" target="_blank" rel="noopener" aria-label="WhatsApp">
+              <i class="fa-brands fa-whatsapp"></i>
+            </a>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ORARI (sezione separata, NON schiaccia il footer) -->
+    <!-- ORARI -->
     <div v-if="showOpeningHours && openingHours.length >= 2" class="wrapper">
       <div class="hours-panel">
         <div class="hours-grid">
           <div class="hours-box">
             <h3 class="hours-title">{{ openingHours?.[0]?.title }}</h3>
-            <div
-              v-for="(row, i) in openingHours[0]?.rows || []"
-              :key="'s-' + i"
-              class="hours-line"
-            >
+            <div v-for="(row, i) in openingHours[0]?.rows || []" :key="'s-' + i" class="hours-line">
               <span class="h-day">{{ row.day }}:</span>
-              <span class="h-am">{{
-                (row.time.split("/")[0] || "").trim()
-              }}</span>
-              <span class="h-pm">{{
-                (row.time.split("/")[1] || "").trim()
-              }}</span>
+              <span class="h-am">{{ (row.time.split('/')[0] || '').trim() }}</span>
+              <span class="h-pm">{{ (row.time.split('/')[1] || '').trim() }}</span>
             </div>
           </div>
 
           <div class="hours-box">
             <h3 class="hours-title">{{ openingHours[1]?.title }}</h3>
-            <div
-              v-for="(row, i) in openingHours[1]?.rows || []"
-              :key="'v-' + i"
-              class="hours-line"
-            >
+            <div v-for="(row, i) in openingHours[1]?.rows || []" :key="'v-' + i" class="hours-line">
               <span class="h-day">{{ row.day }}:</span>
-              <span class="h-am">{{
-                (row.time.split("/")[0] || "").trim()
-              }}</span>
-              <span class="h-pm">{{
-                (row.time.split("/")[1] || "").trim()
-              }}</span>
+              <span class="h-am">{{ (row.time.split('/')[0] || '').trim() }}</span>
+              <span class="h-pm">{{ (row.time.split('/')[1] || '').trim() }}</span>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- COPYRIGHT -->
-    <div class="copyright">
-      <p>{{ settings.footer_text }}</p>
+    <!-- BOTTOM BAR -->
+    <div class="bottomBar">
+      <div class="wrapper bottomInner">
+        <div class="bottomLeft">
+          <span class="dotSep" v-if="privacyLink || cookieLink || showPrefs">
+            <a v-if="privacyLink" :href="privacyLink" target="_blank" rel="noopener">Privacy</a>
+            <span v-if="privacyLink && cookieLink" class="dot">·</span>
+            <a v-if="cookieLink" :href="cookieLink" target="_blank" rel="noopener">Cookie</a>
+            <span v-if="(privacyLink || cookieLink) && showPrefs" class="dot">·</span>
+            <button v-if="showPrefs" class="prefsLinkInline" @click="openCookieBanner">Preferenze</button>
+          </span>
+        </div>
+
+        <div class="bottomRight">
+          <span>{{ settings?.footer_text || "" }}</span>
+        </div>
+      </div>
     </div>
   </footer>
 </template>
 
-<script setup="">
-    import { onMounted, onUnmounted, computed, ref, watch } from "vue";
+<script setup>
+    import { computed, onMounted } from "vue";
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
 
-    const props = defineProps({
-        settings: Object,
-    });
+    const props = defineProps({ settings: Object });
 
     const route = useRoute();
     const tenant = useTenantStore();
     const slug = computed(() => route.params.slug || tenant.slug);
 
-    // ✅ compliance dal tenant store (caricata via bootstrapTenant)
     const compliance = computed(() => tenant.compliance || null);
 
     const iubendaCfg = computed(() => {
@@ -209,20 +159,12 @@
         if (!c?.enabled) return null;
         if (c?.provider !== "iubenda") return null;
         const cfg = c?.config || {};
-
         const privacyId = cfg.privacy_policy_id;
         const cookieId = cfg.cookie_policy_id;
-
         if (!privacyId && !cookieId) return null;
-
-        return {
-            lang: cfg.lang || "it",
-            privacyId: privacyId || null,
-            cookieId: cookieId || null,
-        };
+        return { lang: cfg.lang || "it", privacyId: privacyId || null, cookieId: cookieId || null };
     });
 
-    // ✅ link reali Iubenda (solo se esistono gli id)
     const privacyLink = computed(() => {
         const cfg = iubendaCfg.value;
         if (!cfg?.privacyId) return null;
@@ -231,69 +173,38 @@
 
     const cookieLink = computed(() => {
         const cfg = iubendaCfg.value;
-        if (!cfg?.privacyId) return null;
-        return `https://www.iubenda.com/privacy-policy/${cfg.privacyId}/cookie-policy`;
+        if (cfg?.cookieId) return `https://www.iubenda.com/privacy-policy/${cfg.cookieId}/cookie-policy`;
+        if (cfg?.privacyId) return `https://www.iubenda.com/privacy-policy/${cfg.privacyId}/cookie-policy`;
+        return null;
     });
 
-    // ✅ mostra blocco solo se c’è qualcosa di valido da mostrare
-    const showPrefs = computed(() => !!iubendaCfg.value); // preferenze solo se CMP attiva
-    const showLegalLinks = computed(
-        () => !!privacyLink.value || !!cookieLink.value || !!showPrefs.value,
-    );
+    const showPrefs = computed(() => !!iubendaCfg.value);
+    const showLegalLinks = computed(() => !!privacyLink.value || !!cookieLink.value || !!showPrefs.value);
 
-    // consenso reattivo
-    // consenso reattivo (safe anche se slug parte vuoto)
-    const consent = ref(null);
-
-    const refreshConsent = async () => {
+    const openCookieBanner = () => {
+        if (!iubendaCfg.value) return;
         if (typeof window === "undefined") return;
 
         try {
-            // 1) compat: tua funzione custom (se esiste)
-            if (typeof window.getConsent === "function") {
-                consent.value = window.getConsent(slug.value);
+            const el =
+                document.querySelector("button.iubenda-cs-preferences-link") ||
+                document.querySelector(".iubenda-cs-preferences-link") ||
+                document.querySelector("[class*='iubenda-cs-preferences-link']");
+
+            if (el && typeof el.click === "function") {
+                el.click();
                 return;
             }
 
             const api = window._iub?.cs?.api;
-            if (!api) {
-                consent.value = null;
+            if (api && typeof api.openPreferences === "function") {
+                api.openPreferences();
                 return;
             }
 
-            // 2) prova a ottenere preferenze/consenso (sync o async)
-            let prefs = null;
-
-            if (typeof api.getPreferences === "function") prefs = api.getPreferences();
-            else if (typeof api.getConsent === "function") prefs = api.getConsent();
-
-            if (prefs && typeof prefs.then === "function") {
-                prefs = await prefs;
-            }
-
-            // 3) estrazione “elastica” dei purposes
-            const purposes =
-                prefs?.purposes ||
-                prefs?.preferences?.purposes ||
-                prefs?.consent?.purposes ||
-                null;
-
-            const hasAnyPurposeTrue =
-                purposes && typeof purposes === "object"
-                    ? Object.values(purposes).some((v) => v === true)
-                    : false;
-
-            const hasConsentFlag =
-                prefs?.consent === true ||
-                prefs?.consent_given === true ||
-                prefs?.consentGiven === true;
-
-            consent.value = {
-                third_party: Boolean(hasConsentFlag || hasAnyPurposeTrue),
-            };
+            window.dispatchEvent(new Event("cookie-banner-open"));
         } catch (e) {
-            console.warn("[Footer] refreshConsent error:", e);
-            consent.value = null;
+            console.warn("[Footer] openCookieBanner failed:", e);
         }
     };
 
@@ -302,341 +213,212 @@
         return Array.isArray(raw) ? raw : [];
     });
 
-    const openCookieBanner = () => {
-        if (!iubendaCfg.value) return;
-        if (typeof window === "undefined") return;
-
-        try {
-            // 1) fallback più affidabile: click sul bottone che Iubenda inietta
-            const el =
-                document.querySelector("button.iubenda-cs-preferences-link") ||
-                document.querySelector(".iubenda-cs-preferences-link") ||
-                document.querySelector("[class*='iubenda-cs-preferences-link']");
-
-            if (el && typeof el.click === "function") {
-                el.click();
-                // dopo l'apertura, riprova a leggere consenso
-                setTimeout(refreshConsent, 300);
-                setTimeout(refreshConsent, 1200);
-                return;
-            }
-
-            // 2) API Iubenda (se disponibile)
-            const api = window._iub?.cs?.api;
-            if (api && typeof api.openPreferences === "function") {
-                api.openPreferences();
-                setTimeout(refreshConsent, 300);
-                setTimeout(refreshConsent, 1200);
-                return;
-            }
-
-            // 3) ultimo fallback: evento custom (se lo gestisci altrove)
-            window.dispatchEvent(new Event("cookie-banner-open"));
-        } catch (e) {
-            console.warn("[Footer] openCookieBanner failed:", e);
-        }
-    };
-
-    watch(slug, refreshConsent, { immediate: true });
-
-    onMounted(() => {
-        window.addEventListener("cookie-consent-changed", refreshConsent);
-
-        // ✅ Iubenda carica async: riprova un paio di volte
-        refreshConsent();
-        setTimeout(refreshConsent, 300);
-        setTimeout(refreshConsent, 1200);
-    });
-
-    onUnmounted(() => {
-        window.removeEventListener("cookie-consent-changed", refreshConsent);
-    });
-
-    // ✅ questa è la variabile che decide se la mappa può esistere
-    const canShowMap = computed(() => !!consent.value?.third_party);
-
     const showOpeningHours = computed(() => {
         if (typeof window === "undefined") return false;
-
         const p = String(window.location.pathname || "").toLowerCase();
         const s = String(slug.value || "").toLowerCase();
-
         return (s && p.includes(`/index/${s}`)) || p.includes(`/${s}`);
     });
 
-    // ID mappa univoco (evita conflitti quando cambi slug)
-    const mapId = computed(
-        () => `dealer-map-${props.settings?.google_place_id || "default"}`,
-    );
-
-    // ✅ icona marker: prende SEMPRE avatar_url dallo slug (fallback su logo_web)
-    const markerUrl = computed(() => {
-        return props.settings?.avatar_url || props.settings?.logo_web || "";
+    const mapsHref = computed(() => {
+        const addr = props.settings?.contact_address;
+        if (!addr) return "#";
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
     });
 
-    // 🔧 crea icona dealer (per ora size fisso, lo rendiamo “zoom-aware” nello step 2)
-    const makeDealerIcon = (size = 44) => {
-        if (typeof L === "undefined") return null;
-        return L.divIcon({
-            className: "dealer-marker-wrapper",
-            html: `
-      <div class="dealer-marker-inner" style="width:${size}px;height:${size}px">
-        <img src="${markerUrl.value}" alt="Dealer marker" />
-      </div>
-    `,
-            iconSize: [size, size],
-            iconAnchor: [size / 2, size / 2], // centrato
-            popupAnchor: [0, -size / 2],
-        });
-    };
-
-    // 🔍 dimensione marker in base allo zoom
-    const sizeByZoom = (z) => {
-        if (z >= 16) return 100; // massimo (leggibile)
-        if (z === 15) return 64;
-        if (z === 14) return 60;
-        if (z === 13) return 56;
-        if (z === 12) return 50;
-        return 48; // molto zoom-out: piccolo per vedere strade
-    };
-    // evita di reinizializzare la mappa più volte
-    const mapInstance = ref(null);
-    const markerInstance = ref(null);
-    let currentSize = 0;
-
-    let LeafletMod = null;
-
-    const loadLeaflet = async () => {
-        if (LeafletMod) return LeafletMod;
-        const mod = await import("leaflet");
-        LeafletMod = mod.default || mod;
-        return LeafletMod;
-    };
-
-    const initMap = async () => {
-        if (typeof window === "undefined") return;
-
-        const L = await loadLeaflet();
-        if (!L) {
-            console.warn("[Footer] Leaflet import failed, skip map");
-            return;
-        }
-
-        if (!props.settings?.contact_address) return;
-        if (!canShowMap.value) return;
-        if (mapInstance.value) return;
-
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            props.settings.contact_address,
-        )}`;
-
-        const r = await fetch(url);
-        const json = await r.json();
-        if (!json || !json[0]) return;
-
-        const { lat, lon } = json[0];
-        const mapElement = document.getElementById(mapId.value);
-        if (!mapElement) return;
-
-        mapElement.innerHTML = "";
-
-        const map = L.map(mapId.value, { zoomControl: true }).setView([lat, lon], 16);
-        mapInstance.value = map;
-
-        currentSize = sizeByZoom(map.getZoom());
-
-        const icon = makeDealerIcon(currentSize);
-        const marker = L.marker([lat, lon], icon ? { icon } : {})
-            .addTo(map)
-            .bindPopup(props.settings.contact_address);
-
-        markerInstance.value = marker;
-
-        map.on("zoomend", () => {
-            const z = map.getZoom();
-            const newSize = sizeByZoom(z);
-            if (newSize === currentSize) return;
-            currentSize = newSize;
-            const newIcon = makeDealerIcon(currentSize);
-            if (newIcon) marker.setIcon(newIcon);
-        });
-
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: "&copy; OpenStreetMap",
-        }).addTo(map);
-    };
-
-    // quando diventa true (accetti cookie), parte la mappa
-    watch(
-        canShowMap,
-        (ok) => {
-            if (ok) initMap();
-        },
-        { immediate: true },
-    );
+    onMounted(() => { });
 </script>
 
-<style scoped="">
-/* ================================================
-	FOOTER PREMIUM
-	================================================ */
+<style scoped>
 .footer {
   width: 100%;
-  background-color: #f7f7f7;
-  padding-bottom: 0.6rem;
+  background: #f7f7f7;
 }
-
 
 .divider {
   width: 100%;
   height: 0.25rem;
 }
 
-/* WRAPPER */
 .wrapper {
   width: 100%;
-  max-width: 96rem;                 /* ✅ allineato alle pagine wide */
+  max-width: 96rem;
   margin: 0 auto;
-
-  /* ✅ filo di bordo SEMPRE (come abbiamo fatto sulle sezioni) */
   padding-left: max(1rem, 1.5vw);
   padding-right: max(1rem, 1.5vw);
-
   box-sizing: border-box;
 }
 
-
-.content {
-  width: 100%;
-  padding: clamp(1.6rem, 4vw, 2.2rem) 0;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(1.6rem, 4vw, 2.2rem);
-  text-align: center;
+.grid {
+  padding: clamp(1.4rem, 3.5vw, 2.2rem) 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(1.2rem, 3vw, 2rem);
+  text-align: left;              /* ✅ allineamento base */
+  align-items: start;            /* ✅ stessa baseline */
 }
 
 .col {
-  width: 100%;
+  min-width: 0;
 }
 
-/* LOGO */
+/* BRAND */
 .logo {
   max-height: clamp(2.4rem, 5vw, 3.2rem);
-  margin: 0 auto;
   display: block;
   object-fit: contain;
 }
 
-/* INFO */
-.info-col h3 {
-  margin-bottom: 0.4rem;
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  font-weight: 700;
+.brandName {
+  font-weight: 900;
+  font-size: 1.1rem;
 }
 
-.info-col p {
-  margin: 0.25rem 0;
-  font-size: clamp(0.9rem, 1.8vw, 1rem);
+.brandDesc {
+  margin: 0.65rem 0 0;
+  max-width: 52ch;
+  opacity: 0.8;
+  line-height: 1.55;
+  font-size: 0.95rem;
 }
 
-.maps-link {
-  margin-top: 0.4rem;
-  display: inline-block;
-  font-size: clamp(0.9rem, 1.8vw, 1rem);
-  color: var(--secondary, #0077cc);
-  transition: 0.2s;
-}
-.maps-link:hover {
-  opacity: 0.7;
+/* HEADERS */
+.h {
+  margin: 0 0 0.85rem;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
 }
 
-/* MAPPA */
-.map-frame {
-  width: 100%;
-  height: 15rem;
-  border-radius: 0.8rem;
-  overflow: hidden;
-  border: 0.05rem solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 0.4rem 1rem rgba(0, 0, 0, 0.12);
+/* CONTACT LIST (icone pulite, NO cerchio) */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.6rem;
 }
 
-.map-placeholder {
+.row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 0.7rem;
+  align-items: start;
+}
+
+.icon {
+  width: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-
-  padding: clamp(0.9rem, 2vw, 1.4rem);
-  font-family: inherit; /* prende settings.font_family dal footer */
-  font-size: clamp(0.9rem, 1.8vw, 1rem);
-  font-weight: 400;
-  opacity: 0.85;
-
-  cursor: pointer; /* perché sarà cliccabile */
-  user-select: none;
 }
-.map-placeholder:hover {
-  opacity: 1;
+
+.icon i {
+  font-size: 1rem;
+  color: var(--accent, #0f8a3a);
+  opacity: 0.95;
+  line-height: 1;
 }
-.map-cta {
-  margin-left: 0.35rem;
+
+.text {
+  line-height: 1.5;
+  opacity: 0.92;
+}
+
+.link {
+  line-height: 1.5;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.92;
+  width: fit-content;
+}
+
+.link:hover {
+  opacity: 0.7;
+}
+
+/* INDICAZIONI (link testuale, no pill) */
+.mapsLink {
+  margin-top: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: inherit;
   text-decoration: underline;
-  font-weight: 400;
+  font-weight: 700;
+  opacity: 0.92;
 }
 
-/* SOCIAL */
-.social-col {
+.mapsLink i {
+  color: var(--accent, #0f8a3a);
+}
+
+.mapsLink:hover {
+  opacity: 0.7;
+}
+
+/* LEGAL */
+.legalLinks {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.legalLinks a {
+  color: inherit;
+  text-decoration: underline;
+  opacity: 0.9;
+}
+
+.prefsLink {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  opacity: 0.9;
+  text-align: left;
+}
+
+.prefsLink:hover,
+.legalLinks a:hover {
+  opacity: 0.7;
+}
+
+.muted {
+  opacity: 0.65;
+  margin: 0;
+}
+
+/* SOCIAL (NO cerchi) */
+.socialRow {
   display: flex;
-  justify-content: center;
-  gap: clamp(0.8rem, 2vw, 1.4rem);
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-.social-col a {
-  font-size: clamp(1.4rem, 3vw, 1.9rem);
-  color: var(--secondary, #222);
-  transition: 0.25s ease;
-}
-.social-col a:hover {
-  opacity: 0.55;
-  transform: translateY(-0.1rem);
+.socialRow a {
+  color: #222;
+  text-decoration: none;
+  transition: 0.2s ease;
+  line-height: 1;
 }
 
-/* COPYRIGHT */
-.copyright {
-  text-align: center;
-  padding: 0.7rem 0 0.5rem;
-  font-size: clamp(0.75rem, 1.6vw, 0.9rem);
-  border-top: 0.05rem solid #ddd;
-  background-color: #efefef;
+.socialRow a:hover {
+  opacity: 0.65;
+  transform: translateY(-1px);
 }
 
-/* DESKTOP */
-@media (min-width: 64rem) {
-  .content {
-    flex-direction: row;
-    justify-content: flex-start; /* ✅ niente buchi casuali */
-    gap: clamp(1.2rem, 2vw, 2rem); /* ✅ spacing controllato */
-    text-align: left;
-  }
-
-  .col {
-    flex: 1;
-  }
-
-  .logo {
-    margin: 0;
-  }
-
-  .social-col {
-    justify-content: flex-end;
-  }
-
-  .map-frame {
-    height: 17rem;
-  }
+.socialRow i {
+  font-size: 1.55rem;
 }
-/* ===== ORARI: sezione separata sotto il footer ===== */
+
+.fa-whatsapp {
+  color: #18a957 !important;
+}
+
+/* HOURS */
 .hours-panel {
   padding: 0 0 clamp(1.2rem, 3vw, 1.6rem);
 }
@@ -650,7 +432,7 @@
 .hours-title {
   margin: 0 0 0.7rem;
   font-size: clamp(0.95rem, 1.8vw, 1.1rem);
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.15;
 }
 
@@ -673,100 +455,56 @@
   display: none;
 }
 
-@media (min-width: 64rem) {
-  .hours-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+/* BOTTOM BAR */
+.bottomBar {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background: #efefef;
+  padding: 0.75rem 0;
 }
 
-/* (opzionale ma utile) evitare che le colonne del footer si schiaccino */
-@media (min-width: 64rem) {
-  .logo-col {
-    flex: 0.9;
-  }
-  .info-col {
-    flex: 1.2;
-  }
-  .map-col {
-    flex: 1.4;
-  }
-  .social-col {
-    flex: 0.6;
-  }
-}
-
-:deep(.dealer-marker-inner) {
-  width: 55px;
-  height: 55px;
-  background: transparent;
-  border-radius: 0.45rem;
-  padding: 0.25rem;
-  box-shadow: 0 0.3rem 0.6rem rgba(0, 0, 0, 0.28);
+.bottomInner {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   align-items: center;
-  justify-content: center;
-}
-
-.fa-whatsapp {
-  color: green !important;
-}
-
-:deep(.dealer-marker-inner img) {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
-
-.legal-links {
-  margin-top: 0.7rem;
-  display: flex;
-  gap: 0.45rem;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: clamp(0.85rem, 1.6vw, 0.95rem);
-  opacity: 0.9;
-}
-
-@media (min-width: 64rem) {
-  .legal-links {
-    justify-content: flex-start;
-  }
-}
-
-.legal-links a {
-  color: inherit;
-  text-decoration: underline;
-  font-weight: 400;
+  text-align: center;
+  font-size: 0.9rem;
 }
 
 .dot {
   opacity: 0.6;
+  margin: 0 0.35rem;
 }
 
-.prefs-link {
+.prefsLinkInline {
   border: 0;
   background: transparent;
   padding: 0;
   cursor: pointer;
   font: inherit;
-  color: inherit;
   text-decoration: underline;
-  font-weight: 400;
-  opacity: 0.95;
-}
-.prefs-link:hover {
-  opacity: 1;
+  opacity: 0.9;
 }
 
-/* Leaflet deve stare sopra il canvas della mappa (ma sotto la navbar) */
-:deep(.footer-map .leaflet-container) {
-  position: relative;
-  z-index: 1;
+.prefsLinkInline:hover {
+  opacity: 0.7;
 }
 
-:deep(.footer-map .leaflet-control-container) {
-  z-index: 2;
+/* DESKTOP */
+@media (min-width: 64rem) {
+  .grid {
+    grid-template-columns: 1.2fr 1.2fr 0.9fr 0.7fr;
+  }
+
+  .hours-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bottomInner {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+  }
 }
 </style>

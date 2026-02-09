@@ -10,7 +10,6 @@
     const settings = computed(() => tenant.settings || {});
 
     const isReady = computed(() => !!(settings.value?.meta_title || settings.value?.company_name));
-
     const companyName = computed(() => settings.value?.company_name || settings.value?.meta_title || slug.value);
 
     const aboutText = computed(() =>
@@ -49,32 +48,29 @@
     });
 
     /**
-     * ✅ Deduplica UI: se dentro tenant.team esiste un item “dealer”
-     * (stesso nome del dealer o stessi contatti globali),
-     * lo togliamo dalla colonna Team per non ripeterlo due volte.
+     * ✅ Deduplica UI: togli SOLO la card del dealer dal team
      */
+    const normName = (v) =>
+        clean(v)
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}\s-]/gu, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
     const teamPeople = computed(() => {
         const list = staff.value || [];
-
-        const dealerName = clean(companyName.value).toLowerCase();
-        const dealerEmail = clean(settings.value?.contact_email).toLowerCase();
-        const dealerPhone = clean(settings.value?.contact_phone);
+        const dealerFull = normName(companyName.value);
+        const dealerBase = dealerFull.split("-")[0].trim();
 
         return list.filter((p) => {
-            const n = clean(p.name).toLowerCase();
-            const e = clean(p.email).toLowerCase();
-            const ph = clean(p.phone);
-
-            const sameName = dealerName && n === dealerName;
-            const sameContacts = (dealerEmail && e === dealerEmail) && (dealerPhone && ph === dealerPhone);
-
-            return !(sameName || sameContacts);
+            const n = normName(p.name);
+            const isDealerCard = (dealerBase && n === dealerBase) || (dealerFull && n === dealerFull);
+            return !isDealerCard;
         });
     });
 
     // ------------------------------
     // “Chi contattare per cosa”
-    // - solo mapping UI sulla lista staff esistente
     // ------------------------------
     function pickByRoleKeywords(keywords = []) {
         const list = staff.value;
@@ -123,15 +119,83 @@
 </script>
 
 <template>
-  <div class="page" :style="{ fontFamily: settings.font_family || 'inherit' }">
+  <div
+    class="page"
+    :style="{
+      fontFamily: settings.font_family || 'inherit',
+      '--accent': settings.tertiary_color || settings.primary_color || '#0f8a3a',
+      '--ink': settings.secondary_color || '#111',
+    }"
+  >
     <main class="main">
       <section v-if="isReady" class="contatti-page">
+        <!-- HERO BAND -->
         <header class="head">
-          <h1 class="title">Contatti</h1>
-          <p class="subtitle">
-            {{ companyName }}
-            <span v-if="settings.contact_address"> · {{ settings.contact_address }}</span>
-          </p>
+          <div class="headBand">
+            <div class="headTop">
+              <h1 class="title">Contatti</h1>
+
+              <p class="subtitle">
+                {{ companyName }}
+                <span v-if="settings.contact_address"> · {{ settings.contact_address }}</span>
+              </p>
+
+              <!-- ✅ BLOCCO CONTATTI COMPLETO (al posto dei chip) -->
+              <div class="dealerBlock">
+                <h2 class="dealerBlockTitle">{{ companyName }}</h2>
+
+                <ul class="list">
+                  <li v-if="settings.contact_phone" class="row">
+                    <span class="icon"><i class="fa-solid fa-phone"></i></span>
+                    <a class="link" :href="`tel:${settings.contact_phone}`">
+                      {{ settings.contact_phone }}
+                    </a>
+                  </li>
+
+                  <li v-if="settings.contact_email" class="row">
+                    <span class="icon"><i class="fa-solid fa-envelope"></i></span>
+                    <a class="link" :href="`mailto:${settings.contact_email}`">
+                      {{ settings.contact_email }}
+                    </a>
+                  </li>
+
+                  <li v-if="settings.contact_address" class="row">
+                    <span class="icon"><i class="fa-solid fa-location-dot"></i></span>
+                    <span class="text">{{ settings.contact_address }}</span>
+                  </li>
+
+                  <li v-if="settings.opening_hours" class="row">
+                    <span class="icon"><i class="fa-solid fa-clock"></i></span>
+                    <span class="text">{{ settings.opening_hours }}</span>
+                  </li>
+                </ul>
+
+                <div v-if="hasSocial" class="social">
+                  <a v-if="settings.facebook_url" :href="settings.facebook_url" target="_blank" rel="noopener">
+                    <i class="fab fa-facebook"></i>
+                  </a>
+                  <a v-if="settings.instagram_url" :href="settings.instagram_url" target="_blank" rel="noopener">
+                    <i class="fab fa-instagram"></i>
+                  </a>
+                  <a v-if="settings.tiktok_url" :href="settings.tiktok_url" target="_blank" rel="noopener">
+                    <i class="fab fa-tiktok"></i>
+                  </a>
+                  <a v-if="settings.youtube_url" :href="settings.youtube_url" target="_blank" rel="noopener">
+                    <i class="fab fa-youtube"></i>
+                  </a>
+                  <a v-if="settings.linkedin_url" :href="settings.linkedin_url" target="_blank" rel="noopener">
+                    <i class="fab fa-linkedin"></i>
+                  </a>
+                  <a v-if="settings.x_url" :href="settings.x_url" target="_blank" rel="noopener">
+                    <i class="fab fa-x-twitter"></i>
+                  </a>
+                  <a v-if="settings.whatsapp_url" :href="settings.whatsapp_url" target="_blank" rel="noopener">
+                    <i class="fab fa-whatsapp"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         </header>
 
         <!-- =========================
@@ -148,18 +212,15 @@
                 <div class="matrixName">{{ row.person?.name }}</div>
 
                 <div class="matrixContacts">
-                  <a
-                    v-if="row.person?.email"
-                    class="miniLink"
-                    :href="`mailto:${row.person.email}`"
-                    >✉️ {{ row.person.email }}</a
-                  >
-                  <a
-                    v-if="row.person?.phone"
-                    class="miniLink"
-                    :href="`tel:${row.person.phone}`"
-                    >📞 {{ row.person.phone }}</a
-                  >
+                  <a v-if="row.person?.email" class="miniLink" :href="`mailto:${row.person.email}`">
+                    <span class="icon"><i class="fa-solid fa-envelope"></i></span>
+                    <span class="miniText">{{ row.person.email }}</span>
+                  </a>
+
+                  <a v-if="row.person?.phone" class="miniLink" :href="`tel:${row.person.phone}`">
+                    <span class="icon"><i class="fa-solid fa-phone"></i></span>
+                    <span class="miniText">{{ row.person.phone }}</span>
+                  </a>
                 </div>
               </div>
             </article>
@@ -168,8 +229,6 @@
 
         <!-- =========================
              LAYOUT PRINCIPALE
-             Mobile: 1 colonna
-             Desktop: 2 colonne
              ========================= -->
         <div class="layout">
           <!-- SINISTRA: TEAM -->
@@ -198,68 +257,22 @@
                   <div v-if="p.role" class="teamRole">{{ p.role }}</div>
 
                   <div class="teamContacts">
-                    <a v-if="p.email" class="teamLink" :href="`mailto:${p.email}`">✉️ {{ p.email }}</a>
-                    <a v-if="p.phone" class="teamLink" :href="`tel:${p.phone}`">📞 {{ p.phone }}</a>
+                    <a v-if="p.email" class="teamLink" :href="`mailto:${p.email}`">
+                      <span class="icon"><i class="fa-solid fa-envelope"></i></span>
+                      <span class="miniText">{{ p.email }}</span>
+                    </a>
+                    <a v-if="p.phone" class="teamLink" :href="`tel:${p.phone}`">
+                      <span class="icon"><i class="fa-solid fa-phone"></i></span>
+                      <span class="miniText">{{ p.phone }}</span>
+                    </a>
                   </div>
                 </div>
               </article>
             </div>
           </section>
 
-          <!-- DESTRA: CONTATTI + CHI SIAMO -->
+          <!-- DESTRA: CHI SIAMO -->
           <section class="rightCol">
-            <!-- CONTATTI -->
-            <div class="card">
-              <h2 class="dealer-name">{{ companyName }}</h2>
-
-              <ul class="list">
-                <li v-if="settings.contact_phone" class="row">
-                  <span class="icon"><i class="fa-solid fa-phone"></i></span>
-                  <a class="link" :href="`tel:${settings.contact_phone}`">{{ settings.contact_phone }}</a>
-                </li>
-
-                <li v-if="settings.contact_email" class="row">
-                  <span class="icon"><i class="fa-solid fa-envelope"></i></span>
-                  <a class="link" :href="`mailto:${settings.contact_email}`">{{ settings.contact_email }}</a>
-                </li>
-
-                <li v-if="settings.contact_address" class="row">
-                  <span class="icon"><i class="fa-solid fa-location-dot"></i></span>
-                  <span class="text">{{ settings.contact_address }}</span>
-                </li>
-
-                <li v-if="settings.opening_hours" class="row">
-                  <span class="icon"><i class="fa-solid fa-clock"></i></span>
-                  <span class="text">{{ settings.opening_hours }}</span>
-                </li>
-              </ul>
-
-              <div v-if="hasSocial" class="social">
-                <a v-if="settings.facebook_url" :href="settings.facebook_url" target="_blank" rel="noopener">
-                  <i class="fab fa-facebook"></i>
-                </a>
-                <a v-if="settings.instagram_url" :href="settings.instagram_url" target="_blank" rel="noopener">
-                  <i class="fab fa-instagram"></i>
-                </a>
-                <a v-if="settings.tiktok_url" :href="settings.tiktok_url" target="_blank" rel="noopener">
-                  <i class="fab fa-tiktok"></i>
-                </a>
-                <a v-if="settings.youtube_url" :href="settings.youtube_url" target="_blank" rel="noopener">
-                  <i class="fab fa-youtube"></i>
-                </a>
-                <a v-if="settings.linkedin_url" :href="settings.linkedin_url" target="_blank" rel="noopener">
-                  <i class="fab fa-linkedin"></i>
-                </a>
-                <a v-if="settings.x_url" :href="settings.x_url" target="_blank" rel="noopener">
-                  <i class="fab fa-x-twitter"></i>
-                </a>
-                <a v-if="settings.whatsapp_url" :href="settings.whatsapp_url" target="_blank" rel="noopener">
-                  <i class="fab fa-whatsapp"></i>
-                </a>
-              </div>
-            </div>
-
-            <!-- CHI SIAMO -->
             <div class="card">
               <h2 class="section-title">Chi siamo</h2>
 
@@ -299,38 +312,50 @@
 </template>
 
 <style scoped>
-/* ✅ meno “bianco”: background pagina leggero, card restano bianche */
+/* ====== PAGE BACKGROUND (meno bianco) ====== */
 .page {
   min-height: 100%;
-  background: #f6f6f6;
+  background:
+    radial-gradient(1200px 500px at 20% 0%, rgba(0, 0, 0, 0.04), transparent 60%),
+    radial-gradient(900px 450px at 90% 10%, rgba(0, 0, 0, 0.035), transparent 55%),
+    #f6f6f6;
+  color: var(--ink);
 }
 
 .main {
-  /* ✅ pagina piena ai lati come le altre */
   width: 100%;
   max-width: none;
   margin: 0;
   padding: clamp(1rem, 2.2vw, 2rem);
 }
 
-/* ✅ niente max-width fisso: fluid */
 .contatti-page {
   width: 100%;
   max-width: none;
 }
 
+/* ====== HEAD BAND ====== */
 .head {
   margin-bottom: clamp(1rem, 3vw, 1.75rem);
+}
+
+.headBand {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.03), transparent 55%), #fff;
+  box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.05);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border-radius: 14px;
 }
 
 .title {
   font-size: clamp(2rem, 4vw, 2.6rem);
   line-height: 1.1;
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  margin: 0.75rem 0 0;
+  margin: 0.65rem 0 0;
   opacity: 0.8;
   max-width: 70ch;
 }
@@ -340,19 +365,19 @@
   margin: 0;
 }
 
-/* CARD base */
+/* ====== CARD BASE ====== */
 .card {
   background: #fff;
-  border-radius: 0;
+  border-radius: 14px;
   padding: clamp(1rem, 2.5vw, 1.5rem);
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.05);
 }
 
-/* versione più compatta per la matrix */
 .cardCompact {
   padding: clamp(0.9rem, 2vw, 1.2rem);
   margin-bottom: clamp(1rem, 2.4vw, 1.5rem);
+  border-radius: 14px;
 }
 
 .section-title {
@@ -361,9 +386,68 @@
   font-weight: 800;
 }
 
-/* =========================
-   MATRIX "chi contattare"
-   ========================= */
+/* ====== DEALER BLOCK ====== */
+.dealerBlock {
+  margin-top: 0.9rem;
+}
+
+.dealerBlockTitle {
+  font-size: 1.25rem;
+  font-weight: 900;
+  margin: 0 0 0.75rem;
+}
+
+/* ====== LISTE CONTATTI ====== */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+/* ✅ ICONA UNIFICATA OVUNQUE (telefono/mail/location/clock) */
+.icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+}
+
+.icon i {
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 1;
+}
+
+.text {
+  line-height: 1.45;
+}
+
+.link {
+  line-height: 1.45;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.92;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.link:hover {
+  opacity: 0.7;
+}
+
+/* ====== MATRIX ====== */
 .matrix {
   display: grid;
   gap: 0.65rem;
@@ -373,13 +457,15 @@
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   gap: 0.75rem;
-  padding: 0.85rem;
+  padding: 0.9rem;
   border: 1px solid rgba(0, 0, 0, 0.06);
-  background: rgba(0, 0, 0, 0.02);
+  background: #fff;
+  border-left: 6px solid var(--accent);
+  border-radius: 12px;
 }
 
 .matrixLeft {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .matrixRight {
@@ -389,7 +475,7 @@
 }
 
 .matrixName {
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .matrixContacts {
@@ -398,15 +484,26 @@
   flex-wrap: wrap;
 }
 
+/* miniLink ora con icona uguale */
 .miniLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
   color: inherit;
   text-decoration: none;
   opacity: 0.92;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .miniLink:hover {
   opacity: 0.7;
+}
+
+.miniText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 48ch;
 }
 
 @media (max-width: 720px) {
@@ -415,9 +512,7 @@
   }
 }
 
-/* =========================
-   LAYOUT 2 COLONNE (desktop)
-   ========================= */
+/* ====== LAYOUT 2 COLONNE ====== */
 .layout {
   display: grid;
   gap: clamp(1rem, 2vw, 1.5rem);
@@ -435,13 +530,11 @@
   gap: clamp(1rem, 2vw, 1.5rem);
 }
 
-/* =========================
-   TEAM: lista verticale
-   ========================= */
+/* ====== TEAM ====== */
 .staffTitle {
   margin: 0 0 0.75rem;
   font-size: 1.3rem;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .teamList {
@@ -451,7 +544,7 @@
 
 .teamRow {
   background: #fff;
-  border-radius: 0;
+  border-radius: 14px;
   padding: 0.9rem;
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.05);
@@ -476,7 +569,7 @@
   display: grid;
   place-items: center;
   background: rgba(0, 0, 0, 0.06);
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .teamMeta {
@@ -484,7 +577,7 @@
 }
 
 .teamName {
-  font-weight: 800;
+  font-weight: 900;
   line-height: 1.15;
 }
 
@@ -509,9 +602,6 @@
   text-decoration: none;
   opacity: 0.92;
   line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 100%;
 }
 
@@ -519,65 +609,7 @@
   opacity: 0.7;
 }
 
-.teamLink:focus-visible,
-.link:focus-visible,
-.miniLink:focus-visible {
-  outline: 2px solid rgba(0, 0, 0, 0.25);
-  outline-offset: 3px;
-  border-radius: 6px;
-}
-
-/* =========================
-   CONTATTI card (destra)
-   ========================= */
-.dealer-name {
-  font-size: 1.2rem;
-  font-weight: 800;
-  margin: 0 0 1rem;
-}
-
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.row {
-  display: grid;
-  grid-template-columns: 24px 1fr;
-  gap: 0.75rem;
-  align-items: start;
-}
-
-.icon {
-  display: flex;
-  align-items: center;
-}
-.icon i {
-  font-size: 1rem;
-  opacity: 0.85;
-}
-
-.text {
-  line-height: 1.45;
-}
-
-.link {
-  line-height: 1.45;
-  color: inherit;
-  text-decoration: none;
-  opacity: 0.92;
-  cursor: pointer;
-  width: fit-content;
-}
-
-.link:hover {
-  opacity: 0.7;
-}
-
-/* CHI SIAMO */
+/* ====== CHI SIAMO ====== */
 .about {
   margin: 0;
   line-height: 1.6;
@@ -595,7 +627,7 @@
 }
 
 .hours-title {
-  font-weight: 800;
+  font-weight: 900;
   margin-bottom: 0.4rem;
 }
 
@@ -603,7 +635,7 @@
   line-height: 1.6;
 }
 
-/* SOCIAL */
+/* ====== SOCIAL ====== */
 .social {
   display: flex;
   gap: clamp(1rem, 2vw, 1.6rem);
@@ -622,15 +654,15 @@
 }
 
 .fa-whatsapp {
-  color: green !important;
+  color: #18a957 !important;
 }
 
-/* MAPPA */
+/* ====== MAPPA ====== */
 .map-card {
-  border-radius: 0;
   padding: 0;
   overflow: hidden;
   margin-top: clamp(1rem, 2vw, 1.5rem);
+  border-radius: 14px;
 }
 
 .map {

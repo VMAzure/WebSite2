@@ -14,24 +14,6 @@
 
     const isDev = computed(() => import.meta.env.DEV);
 
-    const compliance = computed(() => tenant.compliance || null);
-
-    const iubendaCfg = computed(() => {
-        const c = compliance.value;
-        if (!c?.enabled) return null;
-        if (c?.provider !== "iubenda") return null;
-        const cfg = c?.config || {};
-        const privacyId = cfg.privacy_policy_id;
-        if (!privacyId) return null;
-        return { privacyId };
-    });
-
-    const privacyLink = computed(() => {
-        const cfg = iubendaCfg.value;
-        if (!cfg?.privacyId) return null;
-        return `https://www.iubenda.com/privacy-policy/${cfg.privacyId}`;
-    });
-
     /* ✅ HOME robusto (come Navbar) */
     const isHome = computed(() => {
         const p = String(route.path || "").toLowerCase();
@@ -156,15 +138,6 @@
 
     <!-- RIGHT SOCIAL -->
     <div class="right">
-      <a
-        v-if="privacyLink"
-        :href="privacyLink"
-        class="privacy-link"
-        target="_blank"
-        rel="noopener"
-      >
-        Privacy
-      </a>
 
       <a
         v-if="settings.facebook_url"

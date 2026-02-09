@@ -40,9 +40,7 @@
     <div v-else-if="error" class="state error">{{ error }}</div>
 
     <div v-else>
-      <div v-if="!items.length" class="state">
-        Nessuna disponibilità al momento.
-      </div>
+      <div v-if="!items.length" class="state">Nessuna disponibilità al momento.</div>
 
       <!-- CARD CATEGORIE (con retro tariffe) -->
       <div v-else class="grid">
@@ -64,9 +62,7 @@
 
                 <div class="cardBody">
                   <div class="cardTop">
-                    <h3 class="cardTitle">
-                      {{ it.nbt_cat || it.title || it.name || "Opzione" }}
-                    </h3>
+                    <h3 class="cardTitle">{{ it.nbt_cat || it.title || it.name || "Opzione" }}</h3>
 
                     <button
                       class="detailsBtn"
@@ -83,9 +79,7 @@
                   </p>
 
                   <div class="cardActions">
-                    <button class="btn" type="button" @click="openRequest(it)">
-                      Calcola Canone
-                    </button>
+                    <button class="btn" type="button" @click="openRequest(it)">Calcola Canone</button>
                   </div>
                 </div>
               </div>
@@ -131,9 +125,7 @@
                   </div>
 
                   <div class="cardActions">
-                    <button class="btn" type="button" @click="openRequest(it)">
-                      Calcola Canone
-                    </button>
+                    <button class="btn" type="button" @click="openRequest(it)">Calcola Canone</button>
 
                     <button class="btn" type="button" @click="openContactFromCard(it)">
                       Contattaci!
@@ -148,52 +140,78 @@
       </div>
 
       <!-- =========================
-           SOTTO LE CARD: "Cosa è incluso" + CTA
-           (stesso style, solo posizione)
+           SOTTO LE CARD: "Cosa è incluso" + CTA (con MAPPA nel riquadro blu)
            ========================= -->
- <section
-  v-if="hasNbtUx && (nbtUx?.included?.length || nbtUx?.cta)"
-  class="nbtUx nbtUxBottom"
-  aria-label="Informazioni e richiesta"
->
-  <div class="uxBox">
-    <!-- usa uxCta come GRIGLIA 2-colonne su desktop (CSS già ce l’hai) -->
-    <div class="uxCta">
-      <!-- SINISTRA: Cosa è incluso (rosso) -->
-      <div v-if="nbtUx?.included?.length" class="uxBlock">
-        <h3 class="uxTitle">Cosa è incluso</h3>
-        <ul class="uxList">
-          <li v-for="(x, i) in nbtUx.included" :key="i">{{ x }}</li>
-        </ul>
-      </div>
-      <div v-else></div>
+      <section
+        v-if="hasNbtUx && (nbtUx?.included?.length || nbtUx?.cta)"
+        class="nbtUx nbtUxBottom"
+        aria-label="Informazioni e richiesta"
+      >
+        <div class="uxBox">
+          <div class="uxCta">
+            <!-- SINISTRA: Cosa è incluso -->
+            <div v-if="nbtUx?.included?.length" class="uxBlock">
+              <h3 class="uxTitle">Cosa è incluso</h3>
+              <ul class="uxList">
+                <li v-for="(x, i) in nbtUx.included" :key="i">{{ x }}</li>
+              </ul>
+            </div>
+            <div v-else></div>
 
-      <!-- DESTRA: blocco blu + bottone sotto -->
-<div v-if="nbtUx?.cta" class="ctaRight">
-  <h3 class="uxTitle">{{ nbtUx.cta.title }}</h3>
-  <p v-if="nbtUx.cta.text" class="uxDesc">{{ nbtUx.cta.text }}</p>
+            <!-- DESTRA: riquadro blu + MAPPA + bottoni -->
+            <div v-if="nbtUx?.cta" class="ctaRight">
+              <h3 class="uxTitle">{{ nbtUx.cta.title }}</h3>
+              <p v-if="nbtUx.cta.text" class="uxDesc">{{ nbtUx.cta.text }}</p>
 
-  <div class="uxCtaActions">
-    <button class="btn" type="button" @click="openContactFromCta">
-      {{ nbtUx.cta.buttonLabel || "Invia Richiesta" }}
-    </button>
-  </div>
-</div>
+              <!-- MAPPA (stesso punto del riquadro blu) -->
+              <div v-if="mapEmbedUrl" class="ctaMap" aria-label="Mappa sede">
+                <iframe
+                  v-if="canShowMap"
+                  class="ctaMapFrame"
+                  :src="mapEmbedUrl"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  title="Mappa"
+                />
+                <button
+                  v-else
+                  type="button"
+                  class="ctaMapPlaceholder"
+                  @click="openCookieBanner"
+                >
+                  Per visualizzare la mappa devi accettare i cookie.
+                  <span class="ctaMapCta">Apri preferenze</span>
+                </button>
+              </div>
 
-      <div v-else></div>
-    </div>
-  </div>
-</section>
+              <div class="uxCtaActions">
+                <a
+                  v-if="mapsHref"
+                  class="btn"
+                  :href="mapsHref"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Indicazioni
+                </a>
 
+                <button class="btn" type="button" @click="openContactFromCta">
+                  {{ nbtUx.cta.buttonLabel || "Invia Richiesta" }}
+                </button>
+              </div>
+            </div>
+
+            <div v-else></div>
+          </div>
+        </div>
+      </section>
 
       <!-- MODAL CONTATTO -->
       <div v-if="isContactOpen" class="backdrop" @click.self="closeContact">
         <div class="modal" role="dialog" aria-modal="true">
           <header class="modalHead">
             <div class="modalTitle">Invia richiesta</div>
-            <button class="x" type="button" aria-label="Chiudi" @click="closeContact">
-              ✕
-            </button>
+            <button class="x" type="button" aria-label="Chiudi" @click="closeContact">✕</button>
           </header>
 
           <div class="modalBody">
@@ -259,12 +277,8 @@
     <div v-if="isOpen" class="backdrop" @click.self="closeRequest">
       <div class="modal" role="dialog" aria-modal="true">
         <header class="modalHead">
-          <div class="modalTitle">
-            {{ selected?.nbt_cat || "Richiesta noleggio" }}
-          </div>
-          <button class="x" type="button" aria-label="Chiudi" @click="closeRequest">
-            ✕
-          </button>
+          <div class="modalTitle">{{ selected?.nbt_cat || "Richiesta noleggio" }}</div>
+          <button class="x" type="button" aria-label="Chiudi" @click="closeRequest">✕</button>
         </header>
 
         <div class="modalBody">
@@ -363,6 +377,97 @@
 
     const slug = computed(() => (route.params.slug || tenant.slug || "").toString().trim());
     const settings = computed(() => tenant.settings || {});
+
+    // =========================
+    // MAPPA: embed + “Indicazioni”
+    // =========================
+    const mapEmbedUrl = computed(() => String(settings.value?.map_embed_url || "").trim());
+
+    const mapsHref = computed(() => {
+        const addr = String(settings.value?.contact_address || "").trim();
+        if (!addr) return "";
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+    });
+
+    // =========================
+    // Consenso (Iubenda) light
+    // - se non c'è consenso => placeholder
+    // =========================
+    const consent = ref(null);
+
+    async function refreshConsent() {
+        if (typeof window === "undefined") return;
+
+        try {
+            // compat: se hai una funzione custom
+            if (typeof window.getConsent === "function") {
+                consent.value = window.getConsent(slug.value);
+                return;
+            }
+
+            const api = window._iub?.cs?.api;
+            if (!api) {
+                consent.value = null;
+                return;
+            }
+
+            let prefs = null;
+            if (typeof api.getPreferences === "function") prefs = api.getPreferences();
+            else if (typeof api.getConsent === "function") prefs = api.getConsent();
+
+            if (prefs && typeof prefs.then === "function") prefs = await prefs;
+
+            const purposes =
+                prefs?.purposes ||
+                prefs?.preferences?.purposes ||
+                prefs?.consent?.purposes ||
+                null;
+
+            const hasAnyPurposeTrue =
+                purposes && typeof purposes === "object"
+                    ? Object.values(purposes).some((v) => v === true)
+                    : false;
+
+            const hasConsentFlag =
+                prefs?.consent === true ||
+                prefs?.consent_given === true ||
+                prefs?.consentGiven === true;
+
+            consent.value = { third_party: Boolean(hasConsentFlag || hasAnyPurposeTrue) };
+        } catch (e) {
+            consent.value = null;
+        }
+    }
+
+    const canShowMap = computed(() => !!consent.value?.third_party);
+
+    function openCookieBanner() {
+        if (typeof window === "undefined") return;
+
+        try {
+            const el =
+                document.querySelector("button.iubenda-cs-preferences-link") ||
+                document.querySelector(".iubenda-cs-preferences-link") ||
+                document.querySelector("[class*='iubenda-cs-preferences-link']");
+
+            if (el && typeof el.click === "function") {
+                el.click();
+                setTimeout(refreshConsent, 300);
+                setTimeout(refreshConsent, 1200);
+                return;
+            }
+
+            const api = window._iub?.cs?.api;
+            if (api && typeof api.openPreferences === "function") {
+                api.openPreferences();
+                setTimeout(refreshConsent, 300);
+                setTimeout(refreshConsent, 1200);
+                return;
+            }
+
+            window.dispatchEvent(new Event("cookie-banner-open"));
+        } catch (e) { }
+    }
 
     const loading = ref(true);
     const error = ref("");
@@ -700,6 +805,16 @@
     onMounted(() => {
         hardResetScrollStyles();
         load();
+
+        // consenso cookie (mappa)
+        refreshConsent();
+        window.addEventListener("cookie-consent-changed", refreshConsent);
+        setTimeout(refreshConsent, 300);
+        setTimeout(refreshConsent, 1200);
+    });
+
+    onBeforeUnmount(() => {
+        window.removeEventListener("cookie-consent-changed", refreshConsent);
     });
 
     watch(slug, () => load());
@@ -1177,6 +1292,51 @@
 .uxCtaActions {
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===== MAPPA nel riquadro blu (anti-CLS) ===== */
+.ctaMap {
+  margin-top: 10px;
+  border: 3px solid #2b2bd6; /* il “riquadro blu” */
+  background: #fff;
+  height: 220px; /* spazio fisso => non salta niente */
+  overflow: hidden;
+}
+
+@media (min-width: 1024px) {
+  .ctaMap {
+    height: 240px;
+  }
+}
+
+.ctaMapFrame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.ctaMapPlaceholder {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+  cursor: pointer;
+  padding: 14px;
+  text-align: center;
+  opacity: 0.9;
+}
+
+.ctaMapPlaceholder:hover {
+  opacity: 1;
+}
+
+.ctaMapCta {
+  display: inline-block;
+  margin-left: 6px;
+  text-decoration: underline;
 }
 
 @media (min-width: 768px) {
@@ -1192,20 +1352,19 @@
 
   .uxCta {
     grid-template-columns: 1fr auto;
-    align-items: center;
+    align-items: start;
     gap: 14px;
   }
 
-  /* CTA a destra: allinea titolo/testo/bottone a destra */
-.ctaRight {
-  text-align: right;
-  justify-self: end;
-}
+  /* CTA a destra: allinea titolo/testo/mappa/bottoni a destra */
+  .ctaRight {
+    text-align: right;
+    justify-self: end;
+    width: min(520px, 100%);
+  }
 
-/* stacca un po' il bottone dal testo */
-.ctaRight .uxCtaActions {
-  margin-top: 10px;
-}
-
+  .ctaRight .uxCtaActions {
+    margin-top: 10px;
+  }
 }
 </style>

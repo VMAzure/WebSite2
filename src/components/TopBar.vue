@@ -1,5 +1,7 @@
+<!-- src/components/TopBar.vue -->
 <script setup>
-    import { computed } from "vue";
+    import { computed, ref, onMounted, onUnmounted, nextTick } from "vue";
+    import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
 
     const props = defineProps({
@@ -8,6 +10,9 @@
     });
 
     const tenant = useTenantStore();
+    const route = useRoute();
+
+    const isDev = computed(() => import.meta.env.DEV);
 
     const compliance = computed(() => tenant.compliance || null);
 
@@ -18,9 +23,7 @@
         const cfg = c?.config || {};
         const privacyId = cfg.privacy_policy_id;
         if (!privacyId) return null;
-        return {
-            privacyId,
-        };
+        return { privacyId };
     });
 
     const privacyLink = computed(() => {
@@ -28,20 +31,96 @@
         if (!cfg?.privacyId) return null;
         return `https://www.iubenda.com/privacy-policy/${cfg.privacyId}`;
     });
+
+    /* ✅ HOME robusto (come Navbar) */
+    const isHome = computed(() => {
+        const p = String(route.path || "").toLowerCase();
+        const s = String(props.slug || route.params?.slug || "")
+            .trim()
+            .toLowerCase();
+
+        if (p === "/") return true;
+        if (s && (p === `/index/${s}` || p === `/index/${s}/`)) return true;
+        if (route.meta && route.meta.canonical === "/") return true;
+
+        return false;
+    });
+
+    /* ✅ stessa soglia della Navbar
+           - QUI: quando scatta, la TOPBAR deve SPARIRE (non restare fixed visibile) */
+    const isHidden = ref(false);
+    const onScroll = () => {
+        isHidden.value = window.scrollY > 80;
+        // quando è nascosta: navbar deve andare a top: 0
+        if (isHidden.value) {
+            document.documentElement.style.setProperty("--topbar-h", `0px`);
+        } else {
+            pushTopbarHeightVar();
+        }
+    };
+
+    /* ✅ misura altezza reale TopBar e la scrive su :root
+           (serve SOLO quando la topbar è visibile, per tenere navbar overlay sotto topbar) */
+    const topbarEl = ref(null);
+
+    const pushTopbarHeightVar = async () => {
+        await nextTick();
+        const el = topbarEl.value;
+        if (!el) return;
+
+        // se nascosta, forza 0 (non lasciare valori vecchi)
+        if (isHidden.value) {
+            document.documentElement.style.setProperty("--topbar-h", `0px`);
+            return;
+        }
+
+        const h = Math.ceil(el.getBoundingClientRect().height || 0);
+        if (h >= 0)
+            document.documentElement.style.setProperty("--topbar-h", `${h}px`);
+    };
+
+    let ro = null;
+
+    onMounted(() => {
+        window.addEventListener("scroll", onScroll, { passive: true });
+
+        // inizializza
+        onScroll();
+        pushTopbarHeightVar();
+
+        // aggiorna se cambia layout (font, resize, ecc.)
+        if ("ResizeObserver" in window) {
+            ro = new ResizeObserver(() => pushTopbarHeightVar());
+            if (topbarEl.value) ro.observe(topbarEl.value);
+        } else {
+            window.addEventListener("resize", pushTopbarHeightVar, { passive: true });
+        }
+    });
+
+    onUnmounted(() => {
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", pushTopbarHeightVar);
+        if (ro) ro.disconnect();
+    });
 </script>
 
 <template>
   <div
-    class="topbar"
+    ref="topbarEl"
+    :class="[
+      'topbar',
+      {
+        'topbar-overlay': isHome && !isHidden,
+        'topbar-hidden': isHidden,
+      },
+    ]"
     :style="{
-      backgroundColor: settings.primary_color,
+      backgroundColor:
+        isHome && !isHidden ? 'transparent' : settings.primary_color || '#fff',
       '--secondary': settings.secondary_color,
       '--tertiary': settings.tertiary_color,
     }"
   >
-    <!-- DEBUG TOPBAR: v3 -->
-    <div style="position: absolute; left: -9999px">TOPBAR_DEBUG_V3</div>
-
     <!-- LEFT -->
     <div class="left">
       <a
@@ -65,7 +144,7 @@
 
     <!-- CENTER LOGO -->
     <div class="center">
-      <router-link :to="slug ? `/index/${slug}` : `/`" class="logo-link">
+      <router-link :to="isDev ? `/index/${slug}` : `/`" class="logo-link">
         <img
           v-if="settings.logo_web"
           :src="settings.logo_web"
@@ -74,9 +153,6 @@
         />
       </router-link>
     </div>
-
-    <!-- debug temporaneo -->
-    <span style="display: none">{{ privacyLink }}</span>
 
     <!-- RIGHT SOCIAL -->
     <div class="right">
@@ -89,10 +165,12 @@
       >
         Privacy
       </a>
+
       <a
         v-if="settings.facebook_url"
         :href="settings.facebook_url"
         target="_blank"
+        rel="noopener"
       >
         <i class="fa-brands fa-facebook"></i>
       </a>
@@ -100,16 +178,23 @@
         v-if="settings.instagram_url"
         :href="settings.instagram_url"
         target="_blank"
+        rel="noopener"
       >
         <i class="fa-brands fa-instagram"></i>
       </a>
-      <a v-if="settings.tiktok_url" :href="settings.tiktok_url" target="_blank">
+      <a
+        v-if="settings.tiktok_url"
+        :href="settings.tiktok_url"
+        target="_blank"
+        rel="noopener"
+      >
         <i class="fa-brands fa-tiktok"></i>
       </a>
       <a
         v-if="settings.youtube_url"
         :href="settings.youtube_url"
         target="_blank"
+        rel="noopener"
       >
         <i class="fa-brands fa-youtube"></i>
       </a>
@@ -117,16 +202,23 @@
         v-if="settings.linkedin_url"
         :href="settings.linkedin_url"
         target="_blank"
+        rel="noopener"
       >
         <i class="fa-brands fa-linkedin"></i>
       </a>
-      <a v-if="settings.x_url" :href="settings.x_url" target="_blank">
+      <a
+        v-if="settings.x_url"
+        :href="settings.x_url"
+        target="_blank"
+        rel="noopener"
+      >
         <i class="fa-brands fa-x-twitter"></i>
       </a>
       <a
         v-if="settings.whatsapp_url"
         :href="settings.whatsapp_url"
         target="_blank"
+        rel="noopener"
       >
         <i class="fa-brands fa-whatsapp"></i>
       </a>
@@ -134,7 +226,7 @@
   </div>
 </template>
 
-<style scoped="">
+<style scoped>
 .topbar {
   width: 100%;
   display: flex;
@@ -142,13 +234,48 @@
   align-items: center;
 
   padding: clamp(0.55rem, 1.4vw, 0.95rem) clamp(1rem, 3vw, 1.4rem);
-
   gap: clamp(0.6rem, 2vw, 1.2rem);
   font-size: clamp(0.85rem, 1.7vw, 1rem);
 
   box-shadow: 0 0.25rem 0.9rem rgba(0, 0, 0, 0.08);
   position: relative;
-  z-index: 999;
+  z-index: 4000;
+  transition:
+    transform 0.22s ease,
+    opacity 0.22s ease;
+}
+
+/* ✅ HOME overlay: sopra hero e trasparente VERO */
+.topbar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+
+  color: #fff;
+}
+
+.topbar-overlay .topbar-link,
+.topbar-overlay .right i {
+  color: #fff !important;
+  text-shadow: 0 0.25rem 0.9rem rgba(0, 0, 0, 0.55);
+}
+
+.topbar-overlay .privacy-link {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  text-shadow: 0 0.25rem 0.9rem rgba(0, 0, 0, 0.55);
+}
+
+/* ✅ SCROLL: la topbar DEVE SPARIRE */
+.topbar-hidden {
+  transform: translateY(-110%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* LEFT */
@@ -184,11 +311,10 @@
 .logo {
   max-height: clamp(2.5rem, 4.8vw, 3.2rem);
   object-fit: contain;
-  transition: transform 0.25s ease;
+  transition: opacity 0.25s ease;
 }
 .logo-link:hover .logo {
-  transform: none;
-  opacity: 0.85; /* feedback leggero, elegante */
+  opacity: 0.85;
 }
 
 /* RIGHT */
@@ -221,31 +347,20 @@
     transform 0.25s ease;
   white-space: nowrap;
 }
-
 .privacy-link:hover {
   opacity: 0.65;
   transform: translateY(-0.05rem);
 }
 
-/* ===== DESKTOP: logo centrato perfettamente nella barra ===== */
+/* DESKTOP */
 @media (min-width: 901px) {
-  .topbar {
-    position: relative; /* già c'è, ma lo ribadisco */
-    /* 🔥 PIÙ ALTEZZA DESKTOP */
-    padding-top: clamp(1.5rem, 1.8vw, 1.1rem);
-    padding-bottom: clamp(1.5rem, 1.8vw, 1.1rem);
-  }
-
   .center {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-
-    /* evita che il flex:1 faccia cose strane */
     flex: none;
     width: max-content;
-
     z-index: 5;
   }
 

@@ -66,9 +66,14 @@
 }
 
 /* HERO */
+/* HERO */
 .hero {
-  height: clamp(55vh, 72vh, 85vh);
-  min-height: clamp(22rem, 48vw, 40rem);
+  height: clamp(62vh, 78vh, 92vh); /* 🔥 +7/+6/+7 vh circa */
+  min-height: clamp(
+    24rem,
+    52vw,
+    44rem
+  ); /* 🔥 un po’ più “alta” anche su desktop */
   position: relative;
   display: flex;
   justify-content: center;

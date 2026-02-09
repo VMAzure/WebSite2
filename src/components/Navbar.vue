@@ -1,10 +1,18 @@
+<!-- src/components/Navbar.vue -->
 <template>
   <nav
-    :class="['navbar', { 'navbar-fixed': isFixed }]"
+    ref="navEl"
+    :class="[
+      'navbar',
+      {
+        'navbar-overlay': isHome && !isFixed,
+        'navbar-fixed': isFixed,
+      },
+    ]"
     class="navbar-full"
     :style="{
-      backgroundColor: settings.secondary_color,
-      borderBottom: '0.2rem solid ' + settings.tertiary_color,
+      '--bg-solid': settings.secondary_color,
+      '--accent': settings.tertiary_color,
       '--hover-color': settings.tertiary_color,
     }"
   >
@@ -15,7 +23,7 @@
       </button>
     </div>
 
-    <!-- ===== MENU MOBILE + DESKTOP ===== -->
+    <!-- ===== MENU ===== -->
     <ul :class="{ open: open }">
       <li class="mobile-item first-item">
         <router-link class="nav-link" :to="isDev ? `/index/${slug}` : `/`">
@@ -24,7 +32,6 @@
       </li>
 
       <li v-for="(srv, i) in menuItems" :key="i" class="mobile-item">
-        <!-- LINK INTERNI -->
         <router-link
           v-if="!isExternal(srv.link)"
           class="nav-link"
@@ -33,8 +40,13 @@
           {{ srv.title }}
         </router-link>
 
-        <!-- LINK ESTERNI -->
-        <a v-else class="nav-link" :href="srv.link" target="_blank">
+        <a
+          v-else
+          class="nav-link"
+          :href="srv.link"
+          target="_blank"
+          rel="noopener"
+        >
           {{ srv.title }}
         </a>
       </li>
@@ -42,42 +54,90 @@
   </nav>
 </template>
 
-<script setup="">
-    import { ref, computed, onMounted, onUnmounted } from "vue";
+<script setup>
+    import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
+    import { useRoute } from "vue-router";
 
     const props = defineProps({
         slug: String,
         settings: Object,
     });
 
+    const route = useRoute();
     const isDev = computed(() => import.meta.env.DEV);
 
-    const usatoVetrinaPath = computed(() => {
-        return isDev.value ? `/index/${props.slug}/usato-vetrina` : `/usato-vetrina`;
+    const isHome = computed(() => {
+        const p = String(route.path || "").toLowerCase();
+        const s = String(props.slug || route.params?.slug || "")
+            .trim()
+            .toLowerCase();
+
+        if (p === "/") return true;
+        if (s && (p === `/index/${s}` || p === `/index/${s}/`)) return true;
+        return false;
     });
-
-    function normalizePath(p) {
-        const s = String(p || "").trim();
-        if (!s) return "/";
-        return s.startsWith("/") ? s : `/${s}`;
-    }
-
-    function toTenantPath(p) {
-        const path = normalizePath(p);
-
-        // in DEV: sempre /index/:slug + path
-        if (isDev.value) return `/index/${props.slug}${path}`;
-
-        // in PROD (dominio): path pulito
-        return path;
-    }
 
     const open = ref(false);
     const isFixed = ref(false);
 
-    /* ------------------------------
-        MENU GENERATO DA SETTINGS
-        -------------------------------- */
+    const onScroll = () => {
+        isFixed.value = window.scrollY > 80;
+    };
+
+    /* ✅ FIX overlap: quando navbar diventa fixed, aggiungo padding-top al body */
+    const navEl = ref(null);
+
+    const applyBodyOffset = async () => {
+        await nextTick();
+        const el = navEl.value;
+        if (!el) return;
+
+        // se è overlay HOME non deve spingere nulla
+        if (isHome.value && !isFixed.value) {
+            document.body.style.paddingTop = "";
+            return;
+        }
+
+        // se è fixed, compensa l'altezza
+        if (isFixed.value) {
+            const h = Math.ceil(el.getBoundingClientRect().height || 0);
+            document.body.style.paddingTop = h > 0 ? `${h}px` : "";
+            return;
+        }
+
+        // non fixed fuori home: torna normale
+        document.body.style.paddingTop = "";
+    };
+
+    let ro = null;
+
+    onMounted(() => {
+        window.addEventListener("scroll", onScroll, { passive: true });
+        onScroll();
+        applyBodyOffset();
+
+        // aggiorna offset se cambia altezza (font/responsive/menu)
+        if ("ResizeObserver" in window) {
+            ro = new ResizeObserver(() => applyBodyOffset());
+            if (navEl.value) ro.observe(navEl.value);
+        } else {
+            window.addEventListener("resize", applyBodyOffset, { passive: true });
+        }
+    });
+
+    onUnmounted(() => {
+        window.removeEventListener("scroll", onScroll);
+        window.removeEventListener("resize", applyBodyOffset);
+        if (ro) ro.disconnect();
+        document.body.style.paddingTop = "";
+    });
+
+    watch([isFixed, isHome, open], () => applyBodyOffset());
+
+    const usatoVetrinaPath = computed(() =>
+        isDev.value ? `/index/${props.slug}/usato-vetrina` : `/usato-vetrina`,
+    );
+
     const menuItems = computed(() => {
         const visibility = props.settings?.servizi_visibili || {};
         const details = props.settings?.servizi_dettaglio || {};
@@ -88,13 +148,8 @@
                 const title = String(details[k]?.title || k).trim();
                 const link = String(details[k]?.link || "#").trim();
 
-                // ✅ Intercetta la voce "Vendita" (qualunque label tu abbia messo nel tenant)
                 const t = title.toLowerCase();
-
-                const isVendita =
-                    t === "vendita" || t === "vendita veicoli" || t === "vetrina proposte";
-
-                if (isVendita) {
+                if (t.includes("vendita")) {
                     return { title, link: usatoVetrinaPath.value, _forceAbsolute: true };
                 }
 
@@ -104,82 +159,90 @@
 
     const isExternal = (link) => /^https?:\/\//i.test(link);
 
-    /* ------------------------------
-        STICKY NAVBAR DINAMICA
-        -------------------------------- */
-    const onScroll = () => {
-        isFixed.value = window.scrollY > 80; // dinamico, non cambia
-    };
-
-    onMounted(() => window.addEventListener("scroll", onScroll));
-    onUnmounted(() => window.removeEventListener("scroll", onScroll));
+    function toTenantPath(p) {
+        const path = p.startsWith("/") ? p : `/${p}`;
+        return isDev.value ? `/index/${props.slug}${path}` : path;
+    }
 </script>
 
-<style scoped="">
+<style scoped>
 /* ============================================
-	FULL WIDTH ASSOLUTO
-	============================================ */
+  BASE
+============================================ */
 .navbar-full {
   width: 100vw;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
-/* BASE NAVBAR */
 .navbar {
-  width: 100vw;
+  width: 100%;
   margin: 0;
   padding: 0;
   position: relative;
   z-index: 3000;
   transition: all 0.25s ease;
+
+  /* default: SOLIDA (fuori home) */
+  background: var(--bg-solid);
+  background-color: var(--bg-solid);
+  border-bottom: 0.2rem solid var(--accent);
 }
 
 /* ============================================
-	STICKY MODE PREMIUM
-	============================================ */
+  HOME — OVERLAY VERO (hero sotto)
+  ✅ fuori flusso + top sotto la TopBar
+============================================ */
+.navbar-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+
+  /* ✅ TopBar gestisce --topbar-h (e quando sparisce diventa 0px) */
+  top: var(--topbar-h, clamp(3.4rem, 6vw, 5.4rem));
+
+  background: transparent !important;
+  background-color: transparent !important;
+  border-bottom: 0 !important;
+}
+
+/* ✅ figli trasparenti (niente “bianco”) */
+.navbar-overlay .mobile-header,
+.navbar-overlay ul {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* testo sopra hero */
+.navbar-overlay .nav-link {
+  color: #fff;
+  text-shadow: 0 0.3rem 1rem rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================
+  SCROLL — NAVBAR SOLIDA (fixed)
+============================================ */
 .navbar-fixed {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
 
-  /* stesso effetto della tua UI */
+  background: rgba(0, 0, 0, 0.88) !important;
+  background-color: rgba(0, 0, 0, 0.88) !important;
   backdrop-filter: blur(0.6rem);
   -webkit-backdrop-filter: blur(0.6rem);
-  background-color: rgba(0, 0, 0, 0.85) !important;
+  border-bottom: 0.2rem solid var(--accent);
 }
 
 /* ============================================
-	MOBILE HEADER
-	============================================ */
-.mobile-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-
-  /* PADDING DINAMICO → NAVBAR MOBILE */
-  padding: clamp(0.8rem, 4vw, 1.2rem);
-}
-
-.hamburger {
-  font-size: clamp(1.6rem, 4vw, 2rem);
-  color: white;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-/* ============================================
-	MENU MOBILE
-	============================================ */
+  MENU (base)
+============================================ */
 ul {
   list-style: none;
-  padding: 0;
   margin: 0;
-  width: 100%;
+  padding: 0;
+
   display: none;
   flex-direction: column;
   text-align: center;
@@ -190,7 +253,7 @@ ul.open {
 }
 
 .mobile-item {
-  padding: clamp(0.9rem, 3vw, 1.2rem) 0;
+  padding: 1rem 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
@@ -203,18 +266,34 @@ ul.open {
 }
 
 .nav-link {
-  color: white;
+  color: #fff;
   text-decoration: none;
-
-  /* FONT DINAMICO */
   font-size: clamp(1.1rem, 3vw, 1.3rem);
   display: block;
   font-weight: 500;
 }
 
 /* ============================================
-	DESKTOP PREMIUM
-	============================================ */
+  MOBILE HEADER
+============================================ */
+.mobile-header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: clamp(0.8rem, 4vw, 1.2rem);
+}
+
+.hamburger {
+  font-size: clamp(1.6rem, 4vw, 2rem);
+  color: white;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* ============================================
+  DESKTOP
+============================================ */
 @media (min-width: 64rem) {
   .mobile-header {
     display: none;
@@ -222,35 +301,32 @@ ul.open {
 
   ul {
     display: flex !important;
-    flex-direction: row;
+    flex-direction: row !important;
     justify-content: center;
     align-items: center;
-
-    /* PADDING → ALTEZZA NAVBAR DESKTOP */
-    padding: clamp(1rem, 2vw, 1.6rem) 0;
-    gap: clamp(1.6rem, 3vw, 3rem);
+    gap: 3rem;
+    padding: 1.4rem 0;
   }
 
-  .mobile-item {
-    border: none !important;
+  .mobile-item,
+  .first-item {
+    border: 0 !important;
     padding: 0 !important;
   }
 
   .nav-link {
     font-size: clamp(1rem, 1.2vw, 1.2rem);
-    font-weight: 500;
     padding: 0.2rem 0;
     position: relative;
   }
 
-  /* Underline animato premium */
   .nav-link::after {
     content: "";
     position: absolute;
-    bottom: -0.35rem;
+    bottom: -0.4rem;
     left: 50%;
-    height: 0.15rem;
     width: 0;
+    height: 0.15rem;
     background: var(--hover-color);
     transform: translateX(-50%);
     transition: width 0.25s ease;

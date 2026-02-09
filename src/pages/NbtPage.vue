@@ -230,22 +230,12 @@
             <div class="row">
               <label class="field">
                 <span>Email</span>
-                <input
-                  v-model.trim="contact.email"
-                  type="email"
-                  autocomplete="email"
-                  inputmode="email"
-                />
+                <input v-model.trim="contact.email" type="email" autocomplete="email" inputmode="email" />
               </label>
 
               <label class="field">
                 <span>Telefono</span>
-                <input
-                  v-model.trim="contact.telefono"
-                  type="tel"
-                  autocomplete="tel"
-                  inputmode="tel"
-                />
+                <input v-model.trim="contact.telefono" type="tel" autocomplete="tel" inputmode="tel" />
               </label>
             </div>
 

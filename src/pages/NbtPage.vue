@@ -140,7 +140,9 @@
       </div>
 
       <!-- =========================
-           SOTTO LE CARD: "Cosa è incluso" + CTA (con MAPPA nel riquadro blu)
+           SOTTO LE CARD:
+           - SINISTRA: "Cosa è incluso" + CTA sotto
+           - DESTRA: MAPPA
            ========================= -->
       <section
         v-if="hasNbtUx && (nbtUx?.included?.length || nbtUx?.cta)"
@@ -148,60 +150,47 @@
         aria-label="Informazioni e richiesta"
       >
         <div class="uxBox">
-          <div class="uxCta">
-            <!-- SINISTRA: Cosa è incluso -->
-            <div v-if="nbtUx?.included?.length" class="uxBlock">
-              <h3 class="uxTitle">Cosa è incluso</h3>
-              <ul class="uxList">
-                <li v-for="(x, i) in nbtUx.included" :key="i">{{ x }}</li>
-              </ul>
+          <div class="uxBottomGrid">
+            <!-- COLONNA SINISTRA -->
+            <div class="uxLeftCol">
+              <div v-if="nbtUx?.included?.length" class="uxBlock">
+                <h3 class="uxTitle">Cosa è incluso</h3>
+                <ul class="uxList">
+                  <li v-for="(x, i) in nbtUx.included" :key="i">{{ x }}</li>
+                </ul>
+              </div>
+
+              <div v-if="nbtUx?.cta" class="ctaLeft">
+                <h3 class="uxTitle">{{ nbtUx.cta.title }}</h3>
+                <p v-if="nbtUx.cta.text" class="uxDesc">{{ nbtUx.cta.text }}</p>
+
+                <div class="uxCtaActions">
+                  <!-- ✅ tolto bottone Indicazioni -->
+
+                  <button class="btn" type="button" @click="openContactFromCta">
+                    {{ nbtUx.cta.buttonLabel || "Invia Richiesta" }}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div v-else></div>
 
-            <!-- DESTRA: riquadro blu + MAPPA + bottoni -->
-            <div v-if="nbtUx?.cta" class="ctaRight">
-              <h3 class="uxTitle">{{ nbtUx.cta.title }}</h3>
-              <p v-if="nbtUx.cta.text" class="uxDesc">{{ nbtUx.cta.text }}</p>
-
-              <!-- MAPPA (stesso punto del riquadro blu) -->
-              <div v-if="mapEmbedUrl" class="ctaMap" aria-label="Mappa sede">
+            <!-- COLONNA DESTRA: SOLO MAPPA -->
+            <div class="uxRightCol">
+              <div class="ctaMap" aria-label="Mappa sede">
                 <iframe
-                  v-if="canShowMap"
+                  v-if="mapSrc"
                   class="ctaMapFrame"
-                  :src="mapEmbedUrl"
+                  :src="mapSrc"
                   loading="lazy"
                   referrerpolicy="no-referrer-when-downgrade"
                   title="Mappa"
                 />
-                <button
-                  v-else
-                  type="button"
-                  class="ctaMapPlaceholder"
-                  @click="openCookieBanner"
-                >
-                  Per visualizzare la mappa devi accettare i cookie.
-                  <span class="ctaMapCta">Apri preferenze</span>
-                </button>
-              </div>
-
-              <div class="uxCtaActions">
-                <a
-                  v-if="mapsHref"
-                  class="btn"
-                  :href="mapsHref"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Indicazioni
-                </a>
-
-                <button class="btn" type="button" @click="openContactFromCta">
-                  {{ nbtUx.cta.buttonLabel || "Invia Richiesta" }}
-                </button>
+                <div v-else class="ctaMapEmpty">
+                  Mappa non configurata: aggiungi <strong>map_embed_url</strong> oppure
+                  <strong>contact_address</strong>.
+                </div>
               </div>
             </div>
-
-            <div v-else></div>
           </div>
         </div>
       </section>
@@ -230,12 +219,22 @@
             <div class="row">
               <label class="field">
                 <span>Email</span>
-                <input v-model.trim="contact.email" type="email" autocomplete="email" inputmode="email" />
+                <input
+                  v-model.trim="contact.email"
+                  type="email"
+                  autocomplete="email"
+                  inputmode="email"
+                />
               </label>
 
               <label class="field">
                 <span>Telefono</span>
-                <input v-model.trim="contact.telefono" type="tel" autocomplete="tel" inputmode="tel" />
+                <input
+                  v-model.trim="contact.telefono"
+                  type="tel"
+                  autocomplete="tel"
+                  inputmode="tel"
+                />
               </label>
             </div>
 
@@ -358,7 +357,6 @@
         const msg = String(nbtUx.value?.cta?.text || "").trim();
 
         contact.value.messaggio = msg ? `${title}\n${msg}` : title;
-
         openContact();
     }
 
@@ -369,96 +367,65 @@
     const settings = computed(() => tenant.settings || {});
 
     // =========================
-    // MAPPA: embed + “Indicazioni”
+    // MAPPA: SEMPRE renderizzata
+    // - usa map_embed_url se c'è
+    // - altrimenti genera embed (prima “società”, poi indirizzo)
     // =========================
-    const mapEmbedUrl = computed(() => String(settings.value?.map_embed_url || "").trim());
+    const contactAddress = computed(() => String(settings.value?.contact_address || "").trim());
 
+    // ✅ label “società” tenant-aware (no static)
+    const companyLabel = computed(() =>
+        String(settings.value?.company_name || settings.value?.meta_title || "").trim()
+    );
+
+    // supporto “chiavi legacy” (se prima funzionava con un nome diverso)
+    const mapEmbedUrl = computed(() => {
+        const s = settings.value || {};
+        const candidates = [
+            s.map_embed_url,
+            s.google_maps_embed,
+            s.google_map_embed,
+            s.map_iframe,
+            s.contact_map_embed,
+            s.contact_map_iframe,
+        ];
+        const found = candidates
+            .map((v) => String(v || "").trim())
+            .find((v) => !!v);
+        return found || "";
+    });
+
+    const mapSrc = computed(() => {
+        // 1) se c'è embed “place” in settings, vince sempre
+        if (mapEmbedUrl.value) return mapEmbedUrl.value;
+
+        // 2) fallback: prova “società + indirizzo”, poi solo società, poi solo indirizzo
+        const name = companyLabel.value;
+        const addr = contactAddress.value;
+
+        const q =
+            name && addr ? `${name}, ${addr}` :
+                name ? name :
+                    addr ? addr :
+                        "";
+
+        if (q) {
+            return `https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`;
+        }
+
+        return "";
+    });
+
+    // lo lasciamo: non usato in template ma non rompe nulla
     const mapsHref = computed(() => {
-        const addr = String(settings.value?.contact_address || "").trim();
+        const addr = contactAddress.value;
         if (!addr) return "";
         return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
     });
 
     // =========================
-    // Consenso (Iubenda) light
-    // - se non c'è consenso => placeholder
+    // DATA
     // =========================
-    const consent = ref(null);
-
-    async function refreshConsent() {
-        if (typeof window === "undefined") return;
-
-        try {
-            // compat: se hai una funzione custom
-            if (typeof window.getConsent === "function") {
-                consent.value = window.getConsent(slug.value);
-                return;
-            }
-
-            const api = window._iub?.cs?.api;
-            if (!api) {
-                consent.value = null;
-                return;
-            }
-
-            let prefs = null;
-            if (typeof api.getPreferences === "function") prefs = api.getPreferences();
-            else if (typeof api.getConsent === "function") prefs = api.getConsent();
-
-            if (prefs && typeof prefs.then === "function") prefs = await prefs;
-
-            const purposes =
-                prefs?.purposes ||
-                prefs?.preferences?.purposes ||
-                prefs?.consent?.purposes ||
-                null;
-
-            const hasAnyPurposeTrue =
-                purposes && typeof purposes === "object"
-                    ? Object.values(purposes).some((v) => v === true)
-                    : false;
-
-            const hasConsentFlag =
-                prefs?.consent === true ||
-                prefs?.consent_given === true ||
-                prefs?.consentGiven === true;
-
-            consent.value = { third_party: Boolean(hasConsentFlag || hasAnyPurposeTrue) };
-        } catch (e) {
-            consent.value = null;
-        }
-    }
-
-    const canShowMap = computed(() => !!consent.value?.third_party);
-
-    function openCookieBanner() {
-        if (typeof window === "undefined") return;
-
-        try {
-            const el =
-                document.querySelector("button.iubenda-cs-preferences-link") ||
-                document.querySelector(".iubenda-cs-preferences-link") ||
-                document.querySelector("[class*='iubenda-cs-preferences-link']");
-
-            if (el && typeof el.click === "function") {
-                el.click();
-                setTimeout(refreshConsent, 300);
-                setTimeout(refreshConsent, 1200);
-                return;
-            }
-
-            const api = window._iub?.cs?.api;
-            if (api && typeof api.openPreferences === "function") {
-                api.openPreferences();
-                setTimeout(refreshConsent, 300);
-                setTimeout(refreshConsent, 1200);
-                return;
-            }
-
-            window.dispatchEvent(new Event("cookie-banner-open"));
-        } catch (e) { }
-    }
-
     const loading = ref(true);
     const error = ref("");
     const items = ref([]);
@@ -577,10 +544,6 @@
         { immediate: true }
     );
 
-    onBeforeUnmount(() => {
-        hardResetScrollStyles();
-    });
-
     // ====== MODAL CONTATTO ======
     function openContact() {
         contactError.value = "";
@@ -639,13 +602,7 @@
             );
 
             contactOk.value = "Richiesta inviata correttamente.";
-            contact.value = {
-                nome: "",
-                cognome: "",
-                email: "",
-                telefono: "",
-                messaggio: "",
-            };
+            contact.value = { nome: "", cognome: "", email: "", telefono: "", messaggio: "" };
             closeContact();
         } catch (e) {
             console.error("[NbtPage] submitContact failed:", e);
@@ -795,16 +752,10 @@
     onMounted(() => {
         hardResetScrollStyles();
         load();
-
-        // consenso cookie (mappa)
-        refreshConsent();
-        window.addEventListener("cookie-consent-changed", refreshConsent);
-        setTimeout(refreshConsent, 300);
-        setTimeout(refreshConsent, 1200);
     });
 
     onBeforeUnmount(() => {
-        window.removeEventListener("cookie-consent-changed", refreshConsent);
+        hardResetScrollStyles();
     });
 
     watch(slug, () => load());
@@ -868,7 +819,7 @@
 
 @media (min-width: 1024px) {
   .card {
-    grid-column: span 4; /* 3 per row */
+    grid-column: span 4;
   }
 }
 
@@ -1197,12 +1148,12 @@
 }
 
 .nbtUxBottom {
-  margin-top: 18px;
+  margin-top: 10px;
 }
 
 .uxBox {
   display: grid;
-  gap: 16px;
+  gap: 0px;
 }
 
 .uxTitle {
@@ -1267,11 +1218,6 @@
   font-size: 14px;
 }
 
-.uxCta {
-  display: grid;
-  gap: 10px;
-}
-
 .uxDesc {
   margin: 6px 0 0;
   opacity: 0.85;
@@ -1279,26 +1225,48 @@
   font-size: 14px;
 }
 
+/* ===== BOTTOM layout ===== */
+.uxBottomGrid {
+  display: grid;
+  grid-template-columns: 1fr; /* mobile: una colonna */
+  gap: 14px;
+  align-items: start;
+}
+
+.uxLeftCol {
+  display: grid;
+  gap: 14px;
+}
+
+.ctaLeft {
+  text-align: left;
+}
+
 .uxCtaActions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-/* ===== MAPPA nel riquadro blu (anti-CLS) ===== */
-.ctaMap {
   margin-top: 10px;
-  border: 3px solid #2b2bd6; /* il “riquadro blu” */
-  background: #fff;
-  height: 220px; /* spazio fisso => non salta niente */
-  overflow: hidden;
 }
 
-@media (min-width: 1024px) {
-  .ctaMap {
-    height: 240px;
-  }
+/* ✅ mappa a destra: top + centrata orizzontalmente */
+.uxRightCol {
+  display: flex;
+  justify-content: center; /* ✅ centra la mappa nella colonna */
+  align-items: flex-start; /* ✅ resta in alto */
+  width: 100%;
+}
+
+.ctaMap {
+  width: 100%;
+  max-width: 900px;
+  height: 300px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  overflow: hidden;
+  margin: 0;
+  align-self: start;
 }
 
 .ctaMapFrame {
@@ -1308,25 +1276,14 @@
   display: block;
 }
 
-.ctaMapPlaceholder {
+.ctaMapEmpty {
   width: 100%;
   height: 100%;
-  border: 0;
-  background: #fff;
-  cursor: pointer;
+  display: grid;
+  place-items: center;
   padding: 14px;
   text-align: center;
   opacity: 0.9;
-}
-
-.ctaMapPlaceholder:hover {
-  opacity: 1;
-}
-
-.ctaMapCta {
-  display: inline-block;
-  margin-left: 6px;
-  text-decoration: underline;
 }
 
 @media (min-width: 768px) {
@@ -1335,26 +1292,28 @@
   }
 }
 
+/* ✅ QUI è IL PUNTO: desktop torna a 2 colonne */
 @media (min-width: 1024px) {
-  .uxSteps {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .uxCta {
-    grid-template-columns: 1fr auto;
+  .uxBottomGrid {
+    grid-template-columns: 1fr 0.75fr;
+    column-gap: 24px;
+    row-gap: 0;
     align-items: start;
-    gap: 14px;
   }
 
-  /* CTA a destra: allinea titolo/testo/mappa/bottoni a destra */
-  .ctaRight {
-    text-align: right;
-    justify-self: end;
-    width: min(520px, 100%);
+  /* colonna destra: non centra niente, lasciamo il flusso normale */
+  .uxRightCol {
+    display: block;
+    width: 100%;
   }
 
-  .ctaRight .uxCtaActions {
-    margin-top: 10px;
+  /* ✅ SOLO MAPPA: stessa size, ma la spostiamo verso sinistra */
+  .ctaMap {
+    width: 620px;
+    max-width: 100%;
+    height: 300px;
+    margin: 0;
+    transform: translateX(clamp(-455px, -25vw, -100px));
   }
 }
 </style>

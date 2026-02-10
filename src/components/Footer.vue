@@ -1,5 +1,12 @@
 <template>
-  <footer class="footer" :style="{ fontFamily: settings?.font_family || 'inherit' }">
+  <footer
+  class="footer"
+  :style="{
+    fontFamily: settings?.font_family || 'inherit',
+    '--accent': settings?.tertiary_color || '#0f8a3a'
+  }"
+>
+
     <div class="divider" :style="{ backgroundColor: settings?.tertiary_color || '#0f8a3a' }"></div>
 
     <div class="wrapper">

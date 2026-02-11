@@ -3,16 +3,14 @@
     import { computed, onMounted, ref, watch } from "vue";
     import { useRoute, useRouter } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
-    import { fetchUsatoDetail, fetchUsatoFoto } from "@/api/usatoPublic";
+    import { fetchUsatoDetail, fetchUsatoFoto, fetchUsatoList } from "@/api/usatoPublic";
 
     const route = useRoute();
     const router = useRouter();
     const tenant = useTenantStore();
 
     const settings = computed(() => tenant.settings || {});
-    const slug = computed(() =>
-        (route.params.slug || tenant.slug || "").toString().trim(),
-    );
+    const slug = computed(() => (route.params.slug || tenant.slug || "").toString().trim());
     const idAuto = computed(() => String(route.params.id || "").trim());
 
     const loading = ref(true);
@@ -21,6 +19,9 @@
     // Risposte grezze dal BE
     const carRaw = ref(null); // dettaglio
     const fotoRaw = ref([]); // endpoint foto
+
+    // ✅ Per correlati
+    const allCarsRaw = ref([]);
 
     /** =========================
      *  Normalizzazione “SitoA-like”
@@ -57,11 +58,9 @@
      * NON il backend API.
      */
     const MEDIA_BASE = computed(() =>
-        String(
-            settings.value.media_base_url || import.meta.env.VITE_MEDIA_BASE_URL || "",
-        )
+        String(settings.value.media_base_url || import.meta.env.VITE_MEDIA_BASE_URL || "")
             .trim()
-            .replace(/\/$/, ""),
+            .replace(/\/$/, "")
     );
 
     function resolveUrl(u) {
@@ -118,7 +117,6 @@
                 if (typeof nested === "string" && nested.trim()) return nested;
             }
         }
-
         return "";
     }
 
@@ -130,24 +128,14 @@
     function normalizeFotoPayload(raw) {
         if (Array.isArray(raw)) return raw;
         if (!raw || typeof raw !== "object") return [];
-        return (
-            raw.items ||
-            raw.data ||
-            raw.foto ||
-            raw.photos ||
-            raw.immagini ||
-            raw.results ||
-            []
-        );
+        return raw.items || raw.data || raw.foto || raw.photos || raw.immagini || raw.results || [];
     }
 
     const photos = computed(() => {
         const fromFotoEndpoint = normalizeFotoPayload(fotoRaw.value);
 
         const base = [
-            ...(Array.isArray(immaginiFromDetail.value)
-                ? immaginiFromDetail.value
-                : []),
+            ...(Array.isArray(immaginiFromDetail.value) ? immaginiFromDetail.value : []),
             ...(Array.isArray(fromFotoEndpoint) ? fromFotoEndpoint : []),
         ];
 
@@ -166,12 +154,10 @@
         return out;
     });
 
-    const mainImg = computed(() => {
-        return photos.value[activeIdx.value] || coverImg.value || PLACEHOLDER;
-    });
+    const mainImg = computed(() => photos.value[activeIdx.value] || coverImg.value || PLACEHOLDER);
 
     function onImgError(e) {
-        e.target.src = PLACEHOLDER;
+        if (e?.target) e.target.src = PLACEHOLDER;
     }
 
     function nextImg() {
@@ -180,20 +166,13 @@
     }
     function prevImg() {
         if (!photos.value.length) return;
-        activeIdx.value =
-            (activeIdx.value - 1 + photos.value.length) % photos.value.length;
+        activeIdx.value = (activeIdx.value - 1 + photos.value.length) % photos.value.length;
     }
 
     /** =========================
      *  Swipe (mobile) su immagine principale
      *  ========================= */
-    const swipe = ref({
-        startX: 0,
-        startY: 0,
-        dx: 0,
-        dy: 0,
-        active: false,
-    });
+    const swipe = ref({ startX: 0, startY: 0, dx: 0, dy: 0, active: false });
 
     const SWIPE_MIN_PX = 42;
     const SWIPE_RATIO = 1.15;
@@ -248,19 +227,14 @@
     const title = computed(() => {
         const c = carAuto.value || {};
         const brand = (c.marca || c.brand || "").toString().trim();
-        const model = (c.modello || c.model || c.allestimento || "")
-            .toString()
-            .trim();
+        const model = (c.modello || c.model || c.allestimento || "").toString().trim();
         return [brand, model].filter(Boolean).join(" ");
     });
 
     const priceText = computed(() => {
         const c = carAuto.value || {};
         const p = c.prezzo_vendita;
-        const n =
-            typeof p === "number"
-                ? p
-                : parseInt(String(p || "").replace(/[^\d]/g, ""), 10);
+        const n = typeof p === "number" ? p : parseInt(String(p || "").replace(/[^\d]/g, ""), 10);
         if (!Number.isFinite(n)) return null;
         return `${n.toLocaleString("it-IT")} €`;
     });
@@ -268,10 +242,7 @@
     const kmText = computed(() => {
         const c = carAuto.value || {};
         const km = c.km_certificati;
-        const n =
-            typeof km === "number"
-                ? km
-                : parseInt(String(km || "").replace(/[^\d]/g, ""), 10);
+        const n = typeof km === "number" ? km : parseInt(String(km || "").replace(/[^\d]/g, ""), 10);
         if (!Number.isFinite(n)) return null;
         return `${n.toLocaleString("it-IT")} km`;
     });
@@ -283,7 +254,7 @@
     });
 
     /** =========================
-     *  ✅ DESCRIZIONE ROBUSTA (non dipende dallo slug, dipende dai dati)
+     *  ✅ DESCRIZIONE ROBUSTA
      *  ========================= */
     const descrizioneText = computed(() => {
         const a = carAuto.value || {};
@@ -310,6 +281,248 @@
         }
         return "";
     });
+
+    /** =========================
+     *  ✅ RELATED (Potrebbero interessarti anche)
+     *  ========================= */
+    function normalizeUsatoListPayload(raw) {
+        if (Array.isArray(raw)) return raw;
+        if (!raw || typeof raw !== "object") return [];
+
+        const lvl1 =
+            raw.items ||
+            raw.results ||
+            raw.cars ||
+            raw.auto ||
+            raw.usato ||
+            raw.list ||
+            raw.data ||
+            [];
+
+        if (Array.isArray(lvl1)) return lvl1;
+
+        if (lvl1 && typeof lvl1 === "object") {
+            const lvl2 =
+                lvl1.items ||
+                lvl1.results ||
+                lvl1.data ||
+                lvl1.cars ||
+                lvl1.auto ||
+                lvl1.usato ||
+                lvl1.list ||
+                [];
+            if (Array.isArray(lvl2)) return lvl2;
+
+            if (lvl2 && typeof lvl2 === "object") {
+                const lvl3 = lvl2.items || lvl2.results || lvl2.data || [];
+                if (Array.isArray(lvl3)) return lvl3;
+            }
+        }
+
+        return [];
+    }
+
+    function unwrapAuto(x) {
+        return x?.auto && typeof x.auto === "object" ? x.auto : x;
+    }
+
+    /** ✅ supporto id_auto */
+    function getCarId(x) {
+        const a = unwrapAuto(x);
+        return String(
+            a?.id ||
+            a?.id_auto ||
+            a?.uuid ||
+            a?._id ||
+            x?.id ||
+            x?.id_auto ||
+            x?.uuid ||
+            x?._id ||
+            ""
+        ).trim();
+    }
+
+    function getCarTitle(x) {
+        const a = unwrapAuto(x);
+        const brand = String(a?.marca || a?.brand || "").trim();
+        const model = String(a?.modello || a?.model || a?.allestimento || "").trim();
+        return [brand, model].filter(Boolean).join(" ");
+    }
+
+    function getCarImg(x) {
+        const a = unwrapAuto(x);
+        const u =
+            a?.cover_url ||
+            a?.cover ||
+            a?.foto_url ||
+            a?.image_url ||
+            a?.img ||
+            a?.thumbnail ||
+            "";
+        return resolveUrl(u) || PLACEHOLDER;
+    }
+
+    function getPriceNumber(x) {
+        const a = unwrapAuto(x);
+        const p = a?.prezzo_vendita;
+        const n = typeof p === "number" ? p : parseInt(String(p || "").replace(/[^\d]/g, ""), 10);
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function getCarPriceText(x) {
+        const n = getPriceNumber(x);
+        if (!Number.isFinite(n)) return null;
+        return `${n.toLocaleString("it-IT")} €`;
+    }
+
+    function getCarYear(x) {
+        const a = unwrapAuto(x);
+        const y = a?.anno_immatricolazione;
+        return y ? String(y) : null;
+    }
+
+    function getCarKmText(x) {
+        const a = unwrapAuto(x);
+        const km = a?.km_certificati;
+        const n = typeof km === "number" ? km : parseInt(String(km || "").replace(/[^\d]/g, ""), 10);
+        if (!Number.isFinite(n)) return null;
+        return `${n.toLocaleString("it-IT")} km`;
+    }
+
+    function getCarSegmento(x) {
+        const a = unwrapAuto(x);
+        return String(a?.segmento || a?.body_type || a?.bodyType || "").trim();
+    }
+
+    function getCarBrand(x) {
+        const a = unwrapAuto(x);
+        return String(a?.marca || a?.brand || "").trim();
+    }
+
+    /**
+     * ✅ Mostro la sezione quando la lista è arrivata
+     */
+    const showRelated = computed(
+        () => !loading.value && Array.isArray(allCarsRaw.value) && allCarsRaw.value.length > 1
+    );
+
+    /**
+     * ✅ ORDINE COERENTE:
+     * - Priorità 1: stesso segmento (se disponibile)
+     * - Priorità 2: prezzo più vicino
+     * - Bonus: stessa marca (piccolo)
+     * - Filtro anti-outlier: mai roba fuori scala (così X7 non finisce sotto un Juke)
+     *
+     * Obiettivo: 6 card.
+     */
+    const relatedCars = computed(() => {
+        const list = Array.isArray(allCarsRaw.value) ? allCarsRaw.value : [];
+        if (!list.length) return [];
+
+        const currentId = idAuto.value;
+        const current = carAuto.value || {};
+
+        const currentPrice = getPriceNumber(current);
+        const currentSeg = String(current.segmento || current.body_type || current.bodyType || "").trim();
+        const currentBrand = String(current.marca || current.brand || "").trim();
+
+        const base = list
+            .filter((x) => {
+                const id = getCarId(x);
+                return id && id !== currentId;
+            })
+            .map((x) => ({
+                raw: x,
+                id: getCarId(x),
+                price: getPriceNumber(x),
+                seg: getCarSegmento(x),
+                brand: getCarBrand(x),
+            }))
+            .filter((x) => x.id);
+
+        if (!base.length) return [];
+
+        // helper: filtra per ratio prezzo (anti-outlier) e ordina per score
+        function pickWithPriceRatio(maxRatio, preferSeg) {
+            if (!Number.isFinite(currentPrice) || !currentPrice || currentPrice <= 0) return [];
+
+            const pool = base.filter((x) => Number.isFinite(x.price) && x.price > 0);
+
+            let filtered = pool.filter((x) => {
+                const ratio = Math.abs(x.price - currentPrice) / currentPrice;
+                if (ratio > maxRatio) return false;
+                if (preferSeg && currentSeg) return x.seg && x.seg === currentSeg;
+                return true;
+            });
+
+            // score: più basso = più vicino
+            filtered.sort((a, b) => {
+                const ratioA = Math.abs(a.price - currentPrice) / currentPrice;
+                const ratioB = Math.abs(b.price - currentPrice) / currentPrice;
+
+                const segA = currentSeg && a.seg === currentSeg ? -0.08 : 0; // piccolo bonus
+                const segB = currentSeg && b.seg === currentSeg ? -0.08 : 0;
+
+                const brandA = currentBrand && a.brand === currentBrand ? -0.03 : 0;
+                const brandB = currentBrand && b.brand === currentBrand ? -0.03 : 0;
+
+                const scoreA = ratioA + segA + brandA;
+                const scoreB = ratioB + segB + brandB;
+
+                return scoreA - scoreB;
+            });
+
+            return filtered.map((x) => x.raw);
+        }
+
+        // 1) stesso segmento + stretto
+        let out = [];
+        const pushUnique = (arr) => {
+            for (const x of arr) {
+                const id = getCarId(x);
+                if (!id) continue;
+                if (id === currentId) continue;
+                if (out.some((y) => getCarId(y) === id)) continue;
+                out.push(x);
+                if (out.length >= 6) break;
+            }
+        };
+
+        if (Number.isFinite(currentPrice) && currentPrice > 0) {
+            if (currentSeg) pushUnique(pickWithPriceRatio(0.35, true));
+            if (out.length < 6 && currentSeg) pushUnique(pickWithPriceRatio(0.60, true));
+
+            // 2) riempio per prezzo vicino (sempre con cap)
+            if (out.length < 6) pushUnique(pickWithPriceRatio(0.35, false));
+            if (out.length < 6) pushUnique(pickWithPriceRatio(0.60, false));
+            if (out.length < 6) pushUnique(pickWithPriceRatio(1.00, false)); // ultimo livello, ma sempre “non fuori scala”
+        } else {
+            // se manca prezzo corrente: provo segmento, poi fallback “ordine lista” ma max 6
+            if (currentSeg) {
+                pushUnique(
+                    base
+                        .filter((x) => x.seg && x.seg === currentSeg)
+                        .slice(0, 6)
+                        .map((x) => x.raw)
+                );
+            }
+            if (out.length < 6) {
+                pushUnique(base.slice(0, 6).map((x) => x.raw));
+            }
+        }
+
+        return out.slice(0, 6);
+    });
+
+    function openRelated(x) {
+        const id = getCarId(x);
+        if (!id) return;
+
+        router.push({
+            name: route.name,
+            params: { ...route.params, id },
+        });
+    }
 
     /** =========================
      *  Load (dedup + parallel)
@@ -342,17 +555,22 @@
             try {
                 activeIdx.value = 0;
 
-                const [c, f] = await Promise.all([
+                const [c, f, list] = await Promise.all([
                     fetchUsatoDetail(s, id),
                     fetchUsatoFoto(s, id),
+                    fetchUsatoList(s).catch(() => null),
                 ]);
 
                 carRaw.value = c || null;
                 fotoRaw.value = f ?? [];
+
+                const normalized = normalizeUsatoListPayload(list);
+                allCarsRaw.value = Array.isArray(normalized) ? normalized : [];
             } catch (e) {
                 error.value = "Errore nel caricamento dettaglio";
                 carRaw.value = null;
                 fotoRaw.value = [];
+                allCarsRaw.value = [];
             } finally {
                 loading.value = false;
             }
@@ -387,9 +605,7 @@
     }"
   >
     <div class="container">
-      <button class="back" type="button" @click="$router.back()">
-        ← Indietro
-      </button>
+      <button class="back" type="button" @click="$router.back()">← Indietro</button>
 
       <div v-if="loading" class="skeleton">
         <div class="sk-layout">
@@ -446,11 +662,7 @@
               </button>
             </div>
 
-            <div
-              v-if="photos.length > 1"
-              class="thumbs"
-              aria-label="Galleria immagini"
-            >
+            <div v-if="photos.length > 1" class="thumbs" aria-label="Galleria immagini">
               <button
                 v-for="(u, i) in photos"
                 :key="`${u}-${i}`"
@@ -460,13 +672,7 @@
                 @click="activeIdx = i"
                 :aria-label="`Apri foto ${i + 1}`"
               >
-                <img
-                  :src="u"
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  @error="onImgError"
-                />
+                <img :src="u" alt="" loading="lazy" decoding="async" @error="onImgError" />
               </button>
             </div>
           </div>
@@ -487,36 +693,28 @@
 
             <div class="specs">
               <div class="spec" v-if="carDett?.alimentazione">
-                <span class="k">Alimentazione</span
-                ><span class="v">{{ carDett.alimentazione }}</span>
+                <span class="k">Alimentazione</span><span class="v">{{ carDett.alimentazione }}</span>
               </div>
               <div class="spec" v-if="carDett?.cambio">
-                <span class="k">Cambio</span
-                ><span class="v">{{ carDett.cambio }}</span>
+                <span class="k">Cambio</span><span class="v">{{ carDett.cambio }}</span>
               </div>
               <div class="spec" v-if="carDett?.trazione">
-                <span class="k">Trazione</span
-                ><span class="v">{{ carDett.trazione }}</span>
+                <span class="k">Trazione</span><span class="v">{{ carDett.trazione }}</span>
               </div>
               <div class="spec" v-if="carDett?.classe_euro">
-                <span class="k">Euro</span
-                ><span class="v">{{ carDett.classe_euro }}</span>
+                <span class="k">Euro</span><span class="v">{{ carDett.classe_euro }}</span>
               </div>
               <div class="spec" v-if="carDett?.potenza">
-                <span class="k">Potenza</span
-                ><span class="v">{{ carDett.potenza }}</span>
+                <span class="k">Potenza</span><span class="v">{{ carDett.potenza }}</span>
               </div>
               <div class="spec" v-if="carDett?.cilindrata">
-                <span class="k">Cilindrata</span
-                ><span class="v">{{ carDett.cilindrata }}</span>
+                <span class="k">Cilindrata</span><span class="v">{{ carDett.cilindrata }}</span>
               </div>
               <div class="spec" v-if="carAuto?.colore">
-                <span class="k">Colore</span
-                ><span class="v">{{ carAuto.colore }}</span>
+                <span class="k">Colore</span><span class="v">{{ carAuto.colore }}</span>
               </div>
             </div>
 
-            <!-- ✅ prima era carAuto?.descrizione -->
             <div v-if="descrizioneText" class="desc">
               <h2 class="h2">Descrizione</h2>
               <p class="p">{{ descrizioneText }}</p>
@@ -524,6 +722,53 @@
           </div>
         </div>
       </div>
+
+      <!-- ✅ SOTTO A TUTTO (prima del footer) -->
+      <section v-if="showRelated" class="related">
+        <h2 class="relatedTitle">Potrebbero interessarti anche</h2>
+
+        <div v-if="relatedCars.length" class="relatedGrid">
+          <button
+            v-for="x in relatedCars"
+            :key="getCarId(x)"
+            type="button"
+            class="relatedCard"
+            @click="openRelated(x)"
+          >
+           <div class="relatedMedia">
+  <img
+    :src="getCarImg(x)"
+    alt=""
+    loading="lazy"
+    decoding="async"
+    @error="onImgError"
+  />
+
+  <div
+    v-if="getCarPriceText(x)"
+    class="relatedPriceTag"
+  >
+    {{ getCarPriceText(x) }}
+  </div>
+</div>
+
+
+            <div class="relatedBody">
+              <div class="relatedName">{{ getCarTitle(x) || "Auto" }}</div>
+
+              <div class="relatedMetaLine">
+                <span v-if="getCarYear(x)">{{ getCarYear(x) }}</span>
+                <span v-if="getCarYear(x) && getCarKmText(x)" class="dot">·</span>
+                <span v-if="getCarKmText(x)">{{ getCarKmText(x) }}</span>
+              </div>
+
+              <div class="relatedCta">Dettagli →</div>
+            </div>
+          </button>
+        </div>
+
+        <div v-else class="relatedEmpty">Nessun suggerimento disponibile.</div>
+      </section>
     </div>
   </section>
 </template>
@@ -625,7 +870,6 @@
 .thumbs {
   margin-top: 0.75rem;
   display: flex;
-  gap: 0.5rem;
   overflow: auto;
   padding-bottom: 0.25rem;
 
@@ -777,5 +1021,118 @@
 .gallery,
 .details {
   min-width: 0;
+}
+
+/* =========================
+   ✅ RELATED (stile "vendita" + più piccole, fino a 6)
+   ========================= */
+.related {
+  margin-top: clamp(1.5rem, 3vw, 2.25rem);
+}
+.relatedTitle {
+  margin: 0 0 0.9rem;
+  font-size: clamp(1.15rem, 2vw, 1.4rem);
+  font-weight: 900;
+}
+
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+@media (min-width: 40rem) {
+  .relatedGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .relatedGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 80rem) {
+  .relatedGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.relatedCard {
+  border: 0.06rem solid rgba(0, 0, 0, 0.14);   /* ✅ bordo card */
+  background: #fff;                            /* ✅ fondo bianco */
+  text-align: left;
+  cursor: pointer;
+  padding: 0;                                  /* media attaccata al bordo */
+  overflow: hidden;                            /* ✅ il bordo “chiude” tutto */
+  display: flex;
+  flex-direction: column;
+}
+
+.relatedMedia {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 5 / 4;
+  background: #f2f2f2;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.relatedMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.relatedPriceTag {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+
+  background: #5f5f5f;   /* stesso grigio vendita */
+  color: #fff;
+
+  font-weight: 900;
+  font-size: 1rem;
+
+  padding: 0.35rem 0.6rem;
+  border-radius: 0;      /* 90° */
+}
+
+.relatedBody {
+  padding: 0.75rem 0.85rem 0.9rem; /* ✅ respiro: top / sides / bottom */
+}
+
+.relatedName {
+  font-weight: 900;
+  line-height: 1.15;
+  font-size: 0.98rem;
+  margin: 0;  
+}
+
+.relatedMetaLine {
+  margin-top: 0.3rem;
+  opacity: 0.8;
+  font-weight: 750;
+  font-size: 0.9rem;
+}
+
+.dot {
+  margin: 0 0.35rem;
+  opacity: 0.7;
+}
+
+.relatedCta {
+  margin-top: 0.45rem;
+  font-weight: 900;
+  font-size: 0.95rem;
+}
+
+.relatedEmpty {
+  opacity: 0.75;
+  font-weight: 700;
+  padding: 0.5rem 0;
 }
 </style>

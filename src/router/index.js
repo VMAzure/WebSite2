@@ -58,6 +58,22 @@ const routes = [
         meta: { tenantRequired: true, canonical: "/nbt" },
     },
 
+    // ✅ PROD (domain-based): /compro
+    {
+        path: "/compro",
+        name: "ComproAuto",
+        component: () => import("@/pages/ComproAutoPage.vue"),
+        meta: { tenantRequired: true, canonical: "/compro" },
+    },
+
+    // ✅ DEV/LOCAL (slug-based): /index/:slug/compro
+    {
+        path: "/index/:slug/compro",
+        name: "ComproAutoDev",
+        component: () => import("@/pages/ComproAutoPage.vue"),
+        meta: { tenantRequired: true, canonical: "/compro" },
+    },
+
 
     // ✅ Dev/preview (con slug in path)
     {

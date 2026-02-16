@@ -202,7 +202,7 @@
              CHI CONTATTARE PER COSA
              ========================= -->
         <section class="card cardCompact">
-          <h2 class="section-title">Chi contattare per cosa</h2>
+          <h2 class="section-title">Contatti dedicati</h2>
 
           <div class="matrix">
             <article v-for="row in contactMatrix" :key="row.label" class="matrixRow">
@@ -344,7 +344,7 @@
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.03), transparent 55%), #fff;
   box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.05);
   padding: clamp(1rem, 2.5vw, 1.5rem);
-  border-radius: 14px;
+  border-radius: 0;
 }
 
 .title {
@@ -368,7 +368,7 @@
 /* ====== CARD BASE ====== */
 .card {
   background: #fff;
-  border-radius: 14px;
+  border-radius: 0;
   padding: clamp(1rem, 2.5vw, 1.5rem);
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.05);
@@ -377,7 +377,7 @@
 .cardCompact {
   padding: clamp(0.9rem, 2vw, 1.2rem);
   margin-bottom: clamp(1rem, 2.4vw, 1.5rem);
-  border-radius: 14px;
+  border-radius: 0;
 }
 
 .section-title {
@@ -461,7 +461,7 @@
   border: 1px solid rgba(0, 0, 0, 0.06);
   background: #fff;
   border-left: 6px solid var(--accent);
-  border-radius: 12px;
+  border-radius: 0;
 }
 
 .matrixLeft {
@@ -544,7 +544,7 @@
 
 .teamRow {
   background: #fff;
-  border-radius: 14px;
+  border-radius: 0;
   padding: 0.9rem;
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.05);
@@ -662,7 +662,7 @@
   padding: 0;
   overflow: hidden;
   margin-top: clamp(1rem, 2vw, 1.5rem);
-  border-radius: 14px;
+  border-radius: 0;
 }
 
 .map {

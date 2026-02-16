@@ -1,3 +1,4 @@
+<!-- src/pages/ComproAutoPage.vue -->
 <template>
   <section
     class="compro"
@@ -6,37 +7,54 @@
       '--accent': settings?.tertiary_color || '#035909',
     }"
   >
+    <!-- HERO -->
     <header class="hero">
-      <h1 class="heroTitle">{{ pageTitle }}</h1>
-      <p v-if="pageSubtitle" class="heroSubtitle">{{ pageSubtitle }}</p>
+      <div class="heroInner">
+        <h1 class="heroTitle">{{ pageTitle }}</h1>
+        <p v-if="pageSubtitle" class="heroSubtitle">{{ pageSubtitle }}</p>
+      </div>
     </header>
 
-    <div v-if="loading" class="state">Caricamento…</div>
-    <div v-else-if="error" class="state error">{{ error }}</div>
-
-    <div v-else class="layout">
+    <!-- CONTENUTO -->
+    <div class="layout">
       <!-- COLONNA TESTO -->
       <section class="card">
-        <h2 class="h2">Come funziona</h2>
+        <!-- ✅ Se il backend ci dà un blocco HTML pronto, lo renderizziamo SSR -->
+        <div v-if="richHtml" class="rich" v-html="richHtml"></div>
 
-        <ul v-if="howItWorks.length" class="list">
-          <li v-for="(s, i) in howItWorks" :key="i">{{ s }}</li>
-        </ul>
-        <p v-else class="muted">Contenuto non disponibile.</p>
+        <!-- ✅ Fallback: UI a steps -->
+        <template v-else>
+          <h2 class="h2">Come funziona</h2>
 
-        <div v-if="bodyText" class="bodyText">
-          <p v-for="(p, i) in bodyParagraphs" :key="i">{{ p }}</p>
-        </div>
+          <!-- Steps -->
+          <ol v-if="howItWorks.length" class="steps">
+            <li v-for="(s, i) in howItWorks.slice(0, 4)" :key="i" class="step">
+              <div class="stepN">{{ i + 1 }}</div>
+              <div class="stepT">{{ s }}</div>
+            </li>
+          </ol>
+          <p v-else class="muted">Contenuto non disponibile.</p>
 
-        <div class="trust">
-          <h3 class="h3">Perché scegliere noi</h3>
-          <ul class="list compact">
-            <li>Valutazione professionale e trasparente</li>
-            <li>Acquisto diretto senza intermediari</li>
-            <li>Pagamento rapido</li>
-            <li>Gestione pratiche inclusa</li>
+          <!-- Step extra -->
+          <ul v-if="howItWorks.length > 4" class="list compact moreSteps">
+            <li v-for="(s, i) in howItWorks.slice(4)" :key="`more-${i}`">
+              {{ s }}
+            </li>
           </ul>
-        </div>
+
+          <!-- Testo descrittivo -->
+          <div v-if="bodyText" class="bodyText">
+            <p v-for="(p, i) in bodyParagraphs" :key="i">{{ p }}</p>
+          </div>
+
+          <!-- BENEFIT -->
+          <div class="trust">
+            <h3 class="h3">Perché scegliere noi</h3>
+            <ul class="list compact">
+              <li v-for="(b, i) in benefits" :key="i">{{ b }}</li>
+            </ul>
+          </div>
+        </template>
       </section>
 
       <!-- COLONNA FORM -->
@@ -44,35 +62,24 @@
         <h2 class="h2">Richiedi una valutazione</h2>
 
         <form class="form" @submit.prevent="onSubmit">
-         <label class="field">
-  <span>Nome</span>
-  <input v-model.trim="form.nome" type="text" autocomplete="given-name" required />
-</label>
+          <label class="field">
+            <span>Nome</span>
+            <input v-model.trim="form.nome" type="text" autocomplete="given-name" required />
+          </label>
 
-<label class="field">
-  <span>Cognome</span>
-  <input v-model.trim="form.cognome" type="text" autocomplete="family-name" required />
-</label>
-
+          <label class="field">
+            <span>Cognome</span>
+            <input v-model.trim="form.cognome" type="text" autocomplete="family-name" required />
+          </label>
 
           <label class="field">
             <span>Telefono</span>
-            <input
-              v-model.trim="form.phone"
-              type="tel"
-              autocomplete="tel"
-              required
-            />
+            <input v-model.trim="form.phone" type="tel" autocomplete="tel" required />
           </label>
 
           <label class="field">
             <span>Email</span>
-            <input
-              v-model.trim="form.email"
-              type="email"
-              autocomplete="email"
-              required
-            />
+            <input v-model.trim="form.email" type="email" autocomplete="email" required />
           </label>
 
           <label class="field">
@@ -88,9 +95,7 @@
             {{ submitting ? "Invio…" : "Invia richiesta" }}
           </button>
 
-          <p v-if="submitOk" class="ok">
-            Richiesta inviata. Ti ricontattiamo a breve.
-          </p>
+          <p v-if="submitOk" class="ok">Richiesta inviata. Ti ricontattiamo a breve.</p>
           <p v-if="submitErr" class="err">{{ submitErr }}</p>
 
           <div class="contacts">
@@ -111,7 +116,7 @@
 </template>
 
 <script setup>
-    import { computed, onMounted, ref } from "vue";
+    import { computed, ref } from "vue";
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
     import { submitComproAutoLead } from "@/api/servicesPublic";
@@ -119,71 +124,120 @@
     const route = useRoute();
     const tenant = useTenantStore();
 
-    const slug = computed(() => route.params.slug || tenant.slug || "");
+    const slug = computed(() => String(route.params.slug || tenant.slug || "").trim());
     const settings = computed(() => tenant.settings || {});
 
     // form state
-    const form = ref({
-        nome: "",
-        cognome: "",
-        phone: "",
-        email: "",
-        message: "",
-    });
-
-
+    const form = ref({ nome: "", cognome: "", phone: "", email: "", message: "" });
     const submitting = ref(false);
     const submitOk = ref(false);
     const submitErr = ref("");
 
+    function toList(raw) {
+        if (Array.isArray(raw)) {
+            return raw
+                .filter(Boolean)
+                .map((x) => String(x).trim())
+                .filter(Boolean);
+        }
+        const s = String(raw || "").trim();
+        if (!s) return [];
+        return s
+            .split(/\r?\n+/)
+            .map((r) => r.replace(/^\s*[-•]\s*/, "").replace(/^\s*\d+[.)]\s*/, "").trim())
+            .filter(Boolean);
+    }
+
+    function looksLikeHtml(s) {
+        const v = String(s || "").trim();
+        return !!(v && /<[a-z][\s\S]*>/i.test(v));
+    }
+
+    /**
+     * ✅ Contenuti SOLO da chiavi esplicite nei settings "compro_*".
+     * Niente euristiche su "services": contratto stabile e dealer-aware.
+     */
     const pageTitle = computed(
-        () =>
-            settings.value?.compro_title ||
-            settings.value?.buy_car_title ||
-            "Acquistiamo la tua auto",
+        () => settings.value?.compro_title || "Acquistiamo la tua auto"
     );
 
     const pageSubtitle = computed(
         () =>
             settings.value?.compro_subtitle ||
-            settings.value?.buy_car_subtitle ||
-            "Valutazione seria, rapida e pagamento immediato.",
+            "Valutazione seria, rapida e pagamento immediato."
     );
 
-    const howItWorks = computed(() => {
-        const arr =
-            settings.value?.compro_how_it_works || settings.value?.buy_car_steps || [];
+    const richHtml = computed(() => {
+        const html = String(
+            settings.value?.compro_html ||
+            settings.value?.compro_content_html ||
+            ""
+        ).trim();
 
-        return Array.isArray(arr)
-            ? arr
-                .filter(Boolean)
-                .map((x) => String(x).trim())
-                .filter(Boolean)
-            : [];
+        return looksLikeHtml(html) ? html : "";
     });
 
-    const bodyText = computed(() =>
-        String(
-            settings.value?.compro_body || settings.value?.buy_car_body || "",
-        ).trim(),
-    );
+    const howItWorks = computed(() => {
+        if (richHtml.value) return [];
+
+        const raw =
+            settings.value?.compro_how_it_works ??
+            settings.value?.compro_steps ??
+            "";
+
+        const list = toList(raw);
+        if (list.length) return list;
+
+        // fallback MINIMO (non testo marketing lungo hardcoded)
+        return [
+            "Compila il form con i dati principali",
+            "Ti contattiamo rapidamente per una prima valutazione",
+            "Fissiamo un appuntamento per verifica e proposta",
+            "Pagamento e pratiche gestite in sede",
+        ];
+    });
+
+    const bodyText = computed(() => {
+        if (richHtml.value) return "";
+        return String(
+            settings.value?.compro_body ||
+            settings.value?.compro_description ||
+            ""
+        ).trim();
+    });
 
     const bodyParagraphs = computed(() =>
         bodyText.value
-            ? bodyText.value
+            ? String(bodyText.value)
                 .split(/\n\s*\n/)
                 .map((p) => p.trim())
                 .filter(Boolean)
-            : [],
+            : []
     );
 
-    // contatti (coerenti con quanto già fai altrove)
-    const phone = computed(() =>
-        String(settings.value?.phone || settings.value?.telefono || "").trim(),
-    );
-    const email = computed(() =>
-        String(settings.value?.email || settings.value?.mail || "").trim(),
-    );
+    const benefits = computed(() => {
+        if (richHtml.value) return [];
+
+        const raw =
+            settings.value?.compro_benefits ??
+            settings.value?.compro_points ??
+            "";
+
+        const list = toList(raw);
+        if (list.length) return list;
+
+        // fallback MINIMO
+        return [
+            "Valutazione trasparente",
+            "Nessun intermediario",
+            "Gestione pratiche inclusa",
+            "Pagamento rapido",
+        ];
+    });
+
+    // contatti
+    const phone = computed(() => String(settings.value?.phone || settings.value?.telefono || "").trim());
+    const email = computed(() => String(settings.value?.email || settings.value?.mail || "").trim());
 
     async function onSubmit() {
         submitOk.value = false;
@@ -200,12 +254,9 @@
                 source: "compro-auto",
             };
 
-
             await submitComproAutoLead(slug.value, payload);
             submitOk.value = true;
-
-            // reset soft
-            form.value.message = "";
+            form.value = { nome: "", cognome: "", phone: "", email: "", message: "" };
         } catch (e) {
             submitErr.value = "Errore invio richiesta. Riprova tra poco.";
         } finally {
@@ -215,112 +266,244 @@
 </script>
 
 <style scoped>
+/* reset minimo SOLO dentro pagina */
+.compro,
+.compro * {
+  box-sizing: border-box;
+}
+
 .compro {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 24px 32px;
+  padding: 0;
+  background: #fff;
+  overflow-x: hidden;
 }
 
-
+/* HERO */
 .hero {
-  padding: 12px 0 16px;
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2.75rem) clamp(1rem, 4vw, 3rem);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0));
 }
+
+.heroInner {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
 .heroTitle {
   margin: 0;
-  font-size: 28px;
-  line-height: 1.15;
+  font-size: clamp(1.95rem, 3.4vw, 2.9rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
 }
+
 .heroSubtitle {
-  margin: 8px 0 0;
-  opacity: 0.85;
+  margin: 0.65rem 0 0;
+  font-size: clamp(0.95rem, 1.2vw, 1.15rem);
+  opacity: 0.86;
+  max-width: 72ch;
 }
 
-.state {
-  padding: 12px;
-  border-radius: 0px;
-  background: #f6f6f6;
-}
-.state.error {
-  background: #ffecec;
-  color: #8a1f1f;
-}
-
+/* LAYOUT */
 .layout {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(1rem, 3vw, 2.25rem) clamp(1rem, 4vw, 3rem);
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: clamp(1rem, 2.2vw, 1.75rem);
+  align-items: stretch;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0) 55%);
 }
+
+/* CARD */
 .card {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  height: 100%;
+  min-width: 0;
   background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.10);
   border-radius: 0;
-  padding: 16px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+  padding: clamp(1rem, 1.6vw, 1.5rem);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 4px;
+  width: 100%;
+  background: var(--accent);
+}
+
+.formCard {
+  background: #fbfbfb;
+}
+
+.formCard .form {
+  height: 100%;
+  align-content: start;
+}
+
+/* ✅ Stile base per HTML ricco */
+.rich :deep(h1),
+.rich :deep(h2),
+.rich :deep(h3) {
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.01em;
+}
+.rich :deep(p) {
+  margin: 0.6rem 0;
+  opacity: 0.95;
+}
+.rich :deep(ul),
+.rich :deep(ol) {
+  margin: 0.6rem 0;
+  padding-left: 1.1rem;
+}
+.rich :deep(li) {
+  margin: 0.35rem 0;
 }
 
 .h2 {
-  margin: 0 0 10px;
-  font-size: 18px;
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
 }
+
 .h3 {
-  margin: 18px 0 8px;
-  font-size: 16px;
+  margin: 1.1rem 0 0.6rem;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.muted {
+  opacity: 0.75;
+  margin: 0;
+}
+
+/* Steps */
+.steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 2.15rem 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.stepN {
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.stepT {
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.moreSteps {
+  margin-top: 0.6rem;
 }
 
 .list {
-  padding-left: 18px;
+  padding-left: 1.1rem;
   margin: 0;
 }
 .list li {
-  margin: 6px 0;
+  margin: 0.35rem 0;
 }
 .list.compact li {
-  margin: 4px 0;
+  margin: 0.25rem 0;
 }
 
 .bodyText {
-  margin-top: 14px;
+  margin-top: 0.9rem;
 }
 .bodyText p {
-  margin: 10px 0;
+  margin: 0.6rem 0;
   opacity: 0.95;
 }
 
+.trust {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+/* FORM */
 .form {
   display: grid;
-  gap: 12px;
+  gap: 0.75rem;
 }
+
 .field {
   display: grid;
-  gap: 6px;
+  gap: 0.4rem;
 }
+
 .field span {
-  font-size: 13px;
+  font-size: 0.82rem;
   opacity: 0.85;
 }
+
 input,
 textarea {
   width: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.14);
-  border-radius: 0px;
-  padding: 10px 12px;
+  max-width: 100%;
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0;
+  padding: 0.65rem 0.8rem;
   outline: none;
+  background: #fff;
 }
+
 input:focus,
 textarea:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
 }
 
 .btn {
+  width: 100%;
   border: 0;
-  border-radius: 0px;
-  padding: 12px 14px;
+  border-radius: 0;
+  padding: 0.85rem 0.95rem;
   background: var(--accent);
   color: #fff;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
 }
+
 .btn:disabled {
   opacity: 0.7;
   cursor: default;
@@ -336,34 +519,38 @@ textarea:focus {
 }
 
 .contacts {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.10);
   display: grid;
-  gap: 8px;
+  gap: 0.55rem;
 }
+
 .contactRow {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0.75rem;
 }
+
 .label {
   opacity: 0.7;
-  font-size: 13px;
+  font-size: 0.82rem;
 }
+
 .link {
   color: inherit;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 800;
 }
 .link:hover {
   text-decoration: underline;
 }
 
+/* DESKTOP: due colonne UGUALI (50/50) */
 @media (min-width: 900px) {
   .layout {
-    grid-template-columns: 1.2fr 0.8fr;
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: clamp(1rem, 2.5vw, 2rem);
   }
 }
 </style>

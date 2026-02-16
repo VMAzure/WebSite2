@@ -1228,9 +1228,12 @@
 /* ===== BOTTOM layout ===== */
 .uxBottomGrid {
   display: grid;
-  grid-template-columns: 1fr; /* mobile: una colonna */
-  gap: 14px;
+  grid-template-columns: 1fr; /* ✅ mobile: una colonna */
+  gap: 16px;
   align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fff;
 }
 
 .uxLeftCol {
@@ -1251,23 +1254,29 @@
 }
 
 /* ✅ mappa a destra: top + centrata orizzontalmente */
+/* ✅ colonna destra: layout pulito (no flex hacks) */
 .uxRightCol {
-  display: flex;
-  justify-content: center; /* ✅ centra la mappa nella colonna */
-  align-items: flex-start; /* ✅ resta in alto */
   width: 100%;
 }
 
+
 .ctaMap {
   width: 100%;
-  max-width: 900px;
-  height: 300px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+
+  /* ✅ MOBILE-FIRST: riserva altezza reale (niente aspect-ratio che schiaccia) */
+  height: clamp(320px, 60vw, 420px);
+  min-height: 320px;
+
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: #fff;
   overflow: hidden;
   margin: 0;
-  align-self: start;
+
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
 }
+
+
+
 
 .ctaMapFrame {
   width: 100%;
@@ -1295,25 +1304,20 @@
 /* ✅ QUI è IL PUNTO: desktop torna a 2 colonne */
 @media (min-width: 1024px) {
   .uxBottomGrid {
-    grid-template-columns: 1fr 0.75fr;
+    grid-template-columns: 1fr 1fr; /* ✅ elimina vuoto: 2 colonne bilanciate */
     column-gap: 24px;
     row-gap: 0;
     align-items: start;
+    padding: 16px;
   }
 
-  /* colonna destra: non centra niente, lasciamo il flusso normale */
-  .uxRightCol {
-    display: block;
-    width: 100%;
-  }
-
-  /* ✅ SOLO MAPPA: stessa size, ma la spostiamo verso sinistra */
+  /* ✅ desktop: mappa più “hero” */
   .ctaMap {
-    width: 620px;
-    max-width: 100%;
-    height: 300px;
-    margin: 0;
-    transform: translateX(clamp(-455px, -25vw, -100px));
+    aspect-ratio: auto;   /* lascia che sia l’altezza a comandare */
+    height: 360px;        /* ✅ più grande e credibile */
+    min-height: 360px;
   }
 }
+
+
 </style>

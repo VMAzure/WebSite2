@@ -22,7 +22,7 @@
       <router-link
         v-if="isFixed"
         class="navbrand"
-        :to="isDev ? `/index/${slug}` : `/`"
+        :to="isPathTenant ? `/${effectiveSlug}` : `/`"
         aria-label="Home"
       >
         <img
@@ -44,7 +44,7 @@
     <!-- ===== MENU ===== -->
     <ul :class="{ open: open }">
       <li class="mobile-item first-item">
-        <router-link class="nav-link" :to="isDev ? `/index/${slug}` : `/`">
+        <router-link class="nav-link" :to="isPathTenant ? `/${effectiveSlug}` : `/`">
           Home
         </router-link>
       </li>
@@ -82,16 +82,32 @@
     });
 
     const route = useRoute();
+
+    const slugFromRoute = computed(() => String(route.params?.slug || "").trim());
+    const effectiveSlug = computed(() => String(props.slug || slugFromRoute.value || "").trim());
+
+    // source: se sei su /index/:slug o /:slug/... sei path-based
+    const isPathTenant = computed(() => {
+        const p = String(route.path || "").toLowerCase();
+        const s = effectiveSlug.value.toLowerCase();
+        if (!s) return false;
+        if (p.startsWith(`/index/${s}`)) return true;
+        if (p === `/${s}` || p.startsWith(`/${s}/`)) return true;
+        return false;
+    });
+
     const isDev = computed(() => import.meta.env.DEV);
 
     const isHome = computed(() => {
         const p = String(route.path || "").toLowerCase();
-        const s = String(props.slug || route.params?.slug || "").trim().toLowerCase();
+        const s = effectiveSlug.value.toLowerCase();
 
         if (p === "/") return true;
+        if (s && (p === `/${s}` || p === `/${s}/`)) return true;
         if (s && (p === `/index/${s}` || p === `/index/${s}/`)) return true;
         return false;
     });
+
 
     const open = ref(false);
     const isFixed = ref(false);
@@ -150,7 +166,7 @@
 
     watch([isFixed, isHome, open], () => applyBodyOffset());
 
-    const usatoVetrinaPath = computed(() =>
+    const usatoVetrinaPath = computed(() => toTenantPath("/usato-vetrina"));
         isDev.value ? `/index/${props.slug}/usato-vetrina` : `/usato-vetrina`
     );
 
@@ -177,8 +193,14 @@
 
     function toTenantPath(p) {
         const path = p.startsWith("/") ? p : `/${p}`;
-        return isDev.value ? `/index/${props.slug}${path}` : path;
+        // se sono path-tenant, prefisso sempre /:slug davanti
+        if (isPathTenant.value && effectiveSlug.value) {
+            return `/${effectiveSlug.value}${path === "/" ? "" : path}`;
+        }
+        // domain tenant: path pulito
+        return path;
     }
+
 </script>
 
 <style scoped>

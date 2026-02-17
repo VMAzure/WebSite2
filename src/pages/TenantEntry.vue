@@ -24,11 +24,13 @@
                 tenant.setTenant(resolved);
 
                 if (resolved.source === "path") {
-                    await router.replace(`/index/${resolved.slug}`);
+                    // ✅ railway/shared: canonical /:slug
+                    await router.replace(`/${resolved.slug}`);
                 } else {
-                    // ✅ NON "/" (loop). Usa /home oppure /index (se hai aggiunto la route)
-                    await router.replace(`/home`);
+                    // domain-based
+                    await router.replace(`/`);
                 }
+
 
                 console.log("[TenantEntry] redirect done");
             } catch (e) {

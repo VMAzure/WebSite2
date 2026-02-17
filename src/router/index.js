@@ -12,6 +12,51 @@ const routes = [
     // alias (se qualche pezzo manda a /home)
     { path: "/home", redirect: { name: "Home" } },
 
+    // ✅ Railway/shared-host canonical: /:slug/...
+    {
+        path: "/:slug",
+        name: "HomeScoped",
+        component: IndexPage,
+        meta: { tenantRequired: true, canonical: "/" },
+    },
+    {
+        path: "/:slug/usato",
+        name: "UsatoScoped",
+        component: () => import("@/pages/UsatoPage.vue"),
+        meta: { tenantRequired: true, canonical: "/usato" },
+    },
+    {
+        path: "/:slug/usato/:id",
+        name: "UsatoDetailScoped",
+        component: () => import("@/pages/UsatoDetailPage.vue"),
+        meta: { tenantRequired: true, canonical: "/usato" },
+    },
+    {
+        path: "/:slug/usato-vetrina",
+        name: "UsatoVetrinaScoped",
+        component: () => import("@/pages/UsatoPage.vue"),
+        meta: { tenantRequired: true, canonical: "/usato-vetrina" },
+    },
+    {
+        path: "/:slug/contatti",
+        name: "ContattiScoped",
+        component: () => import("@/pages/ContattiPage.vue"),
+        meta: { tenantRequired: true, canonical: "/contatti" },
+    },
+    {
+        path: "/:slug/nbt",
+        name: "NbtScoped",
+        component: () => import("@/pages/NbtPage.vue"),
+        meta: { tenantRequired: true, canonical: "/nbt" },
+    },
+    {
+        path: "/:slug/compro",
+        name: "ComproScoped",
+        component: () => import("@/pages/ComproAutoPage.vue"),
+        meta: { tenantRequired: true, canonical: "/compro" },
+    },
+
+
     // ✅ Home pulita (prod). In locale senza dominio configurato → tenant-not-configured
     {
         path: "/",
@@ -161,6 +206,20 @@ const router = createRouter({
 router.beforeEach(async (to) => {
     const tenant = useTenantStore();
     const resolved = await resolveTenantSlug(to);
+
+    // ✅ canonicalize preview URLs: /index/:slug/... -> /:slug/...
+    if (resolved?.source === "path" && to.path.startsWith("/index/")) {
+        const slug = resolved.slug;
+
+        // calcolo destinazione canonica usando meta.canonical
+        const canonical = to.meta?.canonical || "/";
+        // canonical è tipo "/", "/usato", "/nbt" ecc.
+        return {
+            path: `/${slug}${canonical === "/" ? "" : canonical}`,
+            replace: true,
+        };
+    }
+
 
     // se la route richiede tenant ma non ho slug -> errore
     if (to.meta?.tenantRequired && !resolved?.slug) {

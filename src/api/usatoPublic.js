@@ -1,46 +1,59 @@
 // src/api/usatoPublic.js
-import axios from "axios"
+import axios from "axios";
 
-const http = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || "",
-})
+const API_BASE =
+    (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/$/, "");
 
-export async function fetchUsatoList(slug) {
-    const { data } = await http.get(`/api/azlease/usato-pubblico/${encodeURIComponent(slug)}`)
-    return data
+const FALLBACK_BASE = "https://api.azcore.it"; // stessa logica di bootstrapTenant
+
+async function get(url, config) {
+    try {
+        // 1) se API_BASE è valorizzata, usa quella
+        if (API_BASE) return (await axios.get(`${API_BASE}${url}`, config)).data;
+
+        // 2) altrimenti prova same-origin (locale = Vite proxy)
+        return (await axios.get(url, config)).data;
+    } catch (e1) {
+        // 3) fallback assoluto (prod)
+        return (await axios.get(`${FALLBACK_BASE}${url}`, config)).data;
+    }
 }
 
-export async function fetchUsatoDetail(slug, idAuto) {
-    const { data } = await http.get(
+async function post(url, data, config) {
+    try {
+        if (API_BASE) return (await axios.post(`${API_BASE}${url}`, data, config)).data;
+        return (await axios.post(url, data, config)).data;
+    } catch (e1) {
+        return (await axios.post(`${FALLBACK_BASE}${url}`, data, config)).data;
+    }
+}
+
+export function fetchUsatoList(slug) {
+    return get(`/api/azlease/usato-pubblico/${encodeURIComponent(slug)}`);
+}
+
+export function fetchUsatoDetail(slug, idAuto) {
+    return get(
         `/api/azlease/usato-pubblico/${encodeURIComponent(slug)}/${encodeURIComponent(idAuto)}`
-    )
-    return data
+    );
 }
 
-export async function fetchUsatoFoto(slug, idAuto) {
-    const { data } = await http.get(`/api/azlease/usato/${encodeURIComponent(idAuto)}/vetrina`)
-    return data
+export function fetchUsatoFoto(slug, idAuto) {
+    return get(`/api/azlease/usato/${encodeURIComponent(idAuto)}/vetrina`);
 }
 
-// ✅ NUOVA: descrizione pubblica (NON usa slug)
-export async function fetchUsatoDescrizione(idAuto) {
-    const { data } = await http.get(
-        `/api/azlease/usato-pubblico/${encodeURIComponent(idAuto)}/descrizione`
-    )
-    return data
+export function fetchUsatoDescrizione(idAuto) {
+    return get(`/api/azlease/usato-pubblico/${encodeURIComponent(idAuto)}/descrizione`);
 }
 
-export async function inviaContattoUsato({ slug, payload }) {
-    const { data } = await http.post(`/api/azlease/usato-pubblico/invia-contatto`, payload, {
+export function inviaContattoUsato({ slug, payload }) {
+    return post(`/api/azlease/usato-pubblico/invia-contatto`, payload, {
         params: { _slug: slug },
-    })
-    return data
-}
-// ✅ NUOVA: detail + photos + related (una sola orchestrazione)
-export async function fetchUsatoDetailView(slug, idAuto) {
-    const { data } = await http.get(
-        `/api/azlease/usato-pubblico/${encodeURIComponent(slug)}/${encodeURIComponent(idAuto)}/detail-view`
-    )
-    return data
+    });
 }
 
+export function fetchUsatoDetailView(slug, idAuto) {
+    return get(
+        `/api/azlease/usato-pubblico/${encodeURIComponent(slug)}/${encodeURIComponent(idAuto)}/detail-view`
+    );
+}

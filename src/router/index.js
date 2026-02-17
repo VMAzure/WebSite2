@@ -208,17 +208,19 @@ router.beforeEach(async (to) => {
     const resolved = await resolveTenantSlug(to);
 
     // ✅ canonicalize preview URLs: /index/:slug/... -> /:slug/...
+    // canonicalize preview URLs: /index/:slug/... -> /:slug/...
     if (resolved?.source === "path" && to.path.startsWith("/index/")) {
         const slug = resolved.slug;
 
-        // calcolo destinazione canonica usando meta.canonical
-        const canonical = to.meta?.canonical || "/";
-        // canonical è tipo "/", "/usato", "/nbt" ecc.
+        // ricostruisco il path completo SENZA perdere segmenti (es: /usato/:id)
+        const newPath = to.path.replace(`/index/${slug}`, `/${slug}`);
+
         return {
-            path: `/${slug}${canonical === "/" ? "" : canonical}`,
+            path: newPath,
             replace: true,
         };
     }
+
 
 
     // se la route richiede tenant ma non ho slug -> errore

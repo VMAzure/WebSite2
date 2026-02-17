@@ -4,7 +4,8 @@ import axios from "axios";
 const API_BASE =
     (import.meta.env.VITE_API_BASE_URL || "").trim().replace(/\/$/, "");
 
-const FALLBACK_BASE = "https://api.azcore.it"; // stessa logica di bootstrapTenant
+const FALLBACK_BASE = "https://coreapi-production-ca29.up.railway.app";
+
 
 async function get(url, config) {
     try {

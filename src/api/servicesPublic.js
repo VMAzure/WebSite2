@@ -1,23 +1,25 @@
-import axios from "axios";
+// src/api/servicesPublic.js
+import { inviaContattoGenerico } from "@/api/usatoPublic";
 
 export async function submitComproAutoLead(slug, payload) {
     if (!slug) throw new Error("slug_missing");
 
-    const url = `/api/azlease/usato-pubblico/invia-contatto-generico`;
-
+    // mappo i campi Compro -> payload backend (inviaContattoGenerico)
     const mapped = {
         nome: payload?.nome || "",
-        cognome: payload?.cognome || "", // ✅ REQUIRED dal BE
+        cognome: payload?.cognome || "",
         telefono: payload?.phone || "",
         email: payload?.email || "",
-        targa: payload?.plate || "",
-        note: payload?.message || "",
+        messaggio: payload?.message || "",
+        destinatario_email: payload?.destinatario_email, // opzionale
         source: payload?.source || "compro-auto",
+        // se vuoi tenere questi campi, puoi metterli nel messaggio:
+        // targa: payload?.plate || "",
+        // note: payload?.message || "",
     };
 
-    const { data } = await axios.post(url, mapped, {
-        params: { _slug: String(slug).trim() }, // ✅ _slug
+    return inviaContattoGenerico({
+        slug: String(slug).trim(),
+        payload: mapped,
     });
-
-    return data;
 }

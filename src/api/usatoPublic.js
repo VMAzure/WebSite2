@@ -30,33 +30,32 @@ async function post(url, data, config) {
 }
 
 export function fetchUsatoList(slug) {
-    return get(`/api/azlease/usato-pubblico/${encodeURIComponent(slug)}`);
+    return get(`/azlease/usato-pubblico/${encodeURIComponent(slug)}`);
 }
 
 export function fetchUsatoDetail(slug, idAuto) {
     return get(
-        `/api/azlease/usato-pubblico/${encodeURIComponent(slug)}/${encodeURIComponent(idAuto)}`
+        `/azlease/usato-pubblico/${encodeURIComponent(slug)}/${encodeURIComponent(idAuto)}`
     );
 }
 
+
 export function fetchUsatoFoto(slug, idAuto) {
-    return get(`/api/azlease/usato/${encodeURIComponent(idAuto)}/vetrina`);
+    return get(`/azlease/usato/${encodeURIComponent(idAuto)}/vetrina`);
 }
 
 export function fetchUsatoDescrizione(idAuto) {
-    return get(`/api/azlease/usato-pubblico/${encodeURIComponent(idAuto)}/descrizione`);
+    return get(`/azlease/usato-pubblico/${encodeURIComponent(idAuto)}/descrizione`);
 }
 
 export function inviaContattoUsato({ slug, payload }) {
-    return post(`/api/azlease/usato-pubblico/invia-contatto`, payload, {
-        params: { _slug: slug },
-    });
+    return post(`/azlease/usato-pubblico/invia-contatto`, payload, { params: { _slug: slug } });
+
 }
 
 export function inviaContattoGenerico({ slug, payload }) {
-    return post(`/api/azlease/usato-pubblico/invia-contatto-generico`, payload, {
-        params: { _slug: slug },
-    });
+    return post(`/azlease/usato-pubblico/invia-contatto-generico`, payload, { params: { _slug: slug } });
+
 }
 
 
@@ -65,3 +64,6 @@ export function fetchUsatoDetailView(slug, idAuto) {
         `/api/azlease/usato-pubblico/${encodeURIComponent(slug)}/${encodeURIComponent(idAuto)}/detail-view`
     );
 }
+
+export { get, post };
+

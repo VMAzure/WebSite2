@@ -12,6 +12,22 @@ let inFlightComplianceSlug = null
 let inFlightTeam = null
 let inFlightTeamSlug = null
 
+function isPlainObject(v) {
+    return v && typeof v === "object" && !Array.isArray(v)
+}
+
+function ensureJsonOrThrow(resp) {
+    const ct = (resp?.headers?.["content-type"] || "").toLowerCase()
+    // se non è json, per noi è invalido (spesso HTML di fallback)
+    if (!ct.includes("application/json")) throw new Error("non_json_response")
+
+    // e deve essere un oggetto (non stringa/HTML)
+    if (!isPlainObject(resp.data)) throw new Error("invalid_json_shape")
+
+    return resp.data
+}
+
+
 export async function bootstrapTenant(route) {
     const tenant = useTenantStore()
 
@@ -41,12 +57,13 @@ export async function bootstrapTenant(route) {
                 `/api/site-settings-public/${encodeURIComponent(slug)}`,
                 { timeout: 15000 },
             )
-            data = r1.data
+            data = ensureJsonOrThrow(r1)
         } catch (e1) {
             const url = `https://api.azcore.it/api/site-settings-public/${encodeURIComponent(slug)}`
             const r2 = await axios.get(url, { timeout: 15000 })
-            data = r2.data
+            data = ensureJsonOrThrow(r2)
         }
+
 
         tenant.setSettings(data)
         applyTenantTheme(data)
@@ -76,11 +93,11 @@ export async function bootstrapTenant(route) {
                         `/api/site-compliance-public/${encodeURIComponent(slug)}`,
                         { timeout: 15000 },
                     )
-                    data = r1.data
+                    data = ensureJsonOrThrow(r1)
                 } catch (e1) {
                     const url = `https://api.azcore.it/api/site-compliance-public/${encodeURIComponent(slug)}`
                     const r2 = await axios.get(url, { timeout: 15000 })
-                    data = r2.data
+                    data = ensureJsonOrThrow(r2)
                 }
 
                 tenant.setCompliance(data)
@@ -114,11 +131,11 @@ export async function bootstrapTenant(route) {
                             validateStatus: (s) => s >= 200 && s < 300, // ✅ catch su 404
                         },
                     )
-                    payload = r1.data
+                    payload = ensureJsonOrThrow(r1)
                 } catch (e1) {
                     const url = `https://api.azcore.it/users/team-pubblico/${encodeURIComponent(slug)}`
                     const r2 = await axios.get(url, { timeout: 15000 })
-                    payload = r2.data
+                    payload = ensureJsonOrThrow(r2)
                 }
 
                 const teamArr = Array.isArray(payload?.team) ? payload.team : []

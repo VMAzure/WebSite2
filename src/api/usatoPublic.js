@@ -52,6 +52,13 @@ export function inviaContattoUsato({ slug, payload }) {
     });
 }
 
+export function inviaContattoGenerico({ slug, payload }) {
+    return post(`/api/azlease/usato-pubblico/invia-contatto-generico`, payload, {
+        params: { _slug: slug },
+    });
+}
+
+
 export function fetchUsatoDetailView(slug, idAuto) {
     return get(
         `/api/azlease/usato-pubblico/${encodeURIComponent(slug)}/${encodeURIComponent(idAuto)}/detail-view`

@@ -1,47 +1,37 @@
 {
-  "hash": "2d86b9f8",
+  "hash": "0a777f20",
   "configHash": "7c131ad4",
-  "lockfileHash": "f23db741",
-  "browserHash": "dddf18f0",
+  "lockfileHash": "103299eb",
+  "browserHash": "e1f5bb12",
   "optimized": {
     "axios": {
       "src": "../../node_modules/axios/index.js",
       "file": "axios.js",
-      "fileHash": "338bb910",
+      "fileHash": "bddc2523",
       "needsInterop": false
-    },
-    "leaflet": {
-      "src": "../../node_modules/leaflet/dist/leaflet-src.js",
-      "file": "leaflet.js",
-      "fileHash": "48082e21",
-      "needsInterop": true
     },
     "pinia": {
       "src": "../../node_modules/pinia/dist/pinia.mjs",
       "file": "pinia.js",
-      "fileHash": "940d2c4d",
+      "fileHash": "f99ce874",
       "needsInterop": false
     },
     "vue-router": {
       "src": "../../node_modules/vue-router/dist/vue-router.mjs",
       "file": "vue-router.js",
-      "fileHash": "06aa0455",
+      "fileHash": "e8141905",
       "needsInterop": false
     },
     "vue": {
       "src": "../../node_modules/vue/dist/vue.runtime.esm-bundler.js",
       "file": "vue.js",
-      "fileHash": "3c7bb9f3",
+      "fileHash": "1dffb4b7",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-DgxVxUia": {
-      "file": "chunk-DgxVxUia.js",
-      "isDynamicEntry": false
-    },
-    "vue.runtime.esm-bundler-D9ZX2hko": {
-      "file": "vue.runtime.esm-bundler-D9ZX2hko.js",
+    "vue.runtime.esm-bundler-BV65mu-J": {
+      "file": "vue.runtime.esm-bundler-BV65mu-J.js",
       "isDynamicEntry": false
     }
   }

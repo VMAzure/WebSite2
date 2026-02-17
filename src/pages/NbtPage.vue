@@ -338,7 +338,8 @@
     import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
-    import axios from "axios";
+    import axios from "axios"; // lo puoi anche togliere dopo, vedi sotto
+    import { post, get } from "@/api/usatoPublic";
     import { nbtListingDefault } from "@/content/nbtListingDefault";
 
     // ====== BLOCCO UX (no BE/DB: default FE) ======
@@ -588,8 +589,8 @@
 
         contactLoading.value = true;
         try {
-            await axios.post(
-                "/api/azlease/usato-pubblico/invia-contatto-generico",
+            await post(
+                "/azlease/usato-pubblico/invia-contatto-generico",
                 {
                     nome: contact.value.nome,
                     cognome: contact.value.cognome,
@@ -600,6 +601,7 @@
                 },
                 { params: { _slug: slug.value } }
             );
+
 
             contactOk.value = "Richiesta inviata correttamente.";
             contact.value = { nome: "", cognome: "", email: "", telefono: "", messaggio: "" };
@@ -726,7 +728,8 @@
         error.value = "";
 
         try {
-            const { data } = await axios.get(`/api/nbt/${encodeURIComponent(slug.value)}/categorie`);
+            const data = await get(`/nbt/${encodeURIComponent(slug.value)}/categorie`);
+
 
             const arr = Array.isArray(data)
                 ? data

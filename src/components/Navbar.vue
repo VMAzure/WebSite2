@@ -32,7 +32,7 @@
           alt="logo"
         />
         <span v-else class="navbrandText">
-          {{ settings?.company_name || settings?.meta_title || slug || "Home" }}
+          {{ settings?.company_name || settings?.meta_title || effectiveSlug || "Home" }}
         </span>
       </router-link>
 
@@ -96,7 +96,6 @@
         return false;
     });
 
-    const isDev = computed(() => import.meta.env.DEV);
 
     const isHome = computed(() => {
         const p = String(route.path || "").toLowerCase();
@@ -167,8 +166,7 @@
     watch([isFixed, isHome, open], () => applyBodyOffset());
 
     const usatoVetrinaPath = computed(() => toTenantPath("/usato-vetrina"));
-        isDev.value ? `/index/${props.slug}/usato-vetrina` : `/usato-vetrina`
-    );
+
 
     const menuItems = computed(() => {
         const visibility = props.settings?.servizi_visibili || {};

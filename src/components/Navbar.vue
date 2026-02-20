@@ -3,12 +3,13 @@
   <nav
     ref="navEl"
     :class="[
-      'navbar',
-      {
-        'navbar-overlay': isHome && !isFixed,
-        'navbar-fixed': isFixed,
-      },
-    ]"
+  'navbar',
+  {
+    'navbar-overlay': isHome && !isFixed,
+    'navbar-fixed': isFixed,
+    'navbar-open': open, // ✅ AGGIUNTA: quando menu è aperto
+  },
+]"
     class="navbar-full"
     :style="{
       '--bg-solid': settings.secondary_color,
@@ -110,6 +111,13 @@
 
     const open = ref(false);
     const isFixed = ref(false);
+
+    watch(
+        () => route.fullPath,
+        () => {
+            open.value = false; // ✅ chiude il menu dopo qualsiasi navigazione
+        }
+    );
 
     const onScroll = () => {
         isFixed.value = window.scrollY > 80;
@@ -245,6 +253,20 @@
 .navbar-overlay .mobile-header {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+/* ✅ FIX: se il menu è aperto, anche in HOME overlay la barra deve diventare leggibile */
+.navbar-overlay.navbar-open {
+  background: rgba(0, 0, 0, 0.88) !important;
+  background-color: rgba(0, 0, 0, 0.88) !important;
+  backdrop-filter: blur(0.6rem);
+  -webkit-backdrop-filter: blur(0.6rem);
+  border-bottom: 0.2rem solid var(--accent) !important;
+}
+
+.navbar-overlay.navbar-open .mobile-header {
+  background: rgba(0, 0, 0, 0.88) !important;
+  background-color: rgba(0, 0, 0, 0.88) !important;
 }
 
 /* testo sopra hero */

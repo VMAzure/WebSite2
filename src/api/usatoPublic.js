@@ -4,7 +4,7 @@ import axios from "axios";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "")
     .trim()
     .replace(/\/$/, "");
-
+const IS_PROD = import.meta.env.PROD;
 /**
  * Wrapper deterministico:
  * - se VITE_API_BASE_URL è presente -> usa sempre quello
@@ -19,11 +19,13 @@ function enc(v) {
 }
 
 async function get(url, config) {
+    if (IS_PROD && !API_BASE) throw new Error("VITE_API_BASE_URL missing in production");
     const fullUrl = API_BASE ? `${API_BASE}${url}` : url;
     return (await axios.get(fullUrl, config)).data;
 }
 
 async function post(url, data, config) {
+    if (IS_PROD && !API_BASE) throw new Error("VITE_API_BASE_URL missing in production");
     const fullUrl = API_BASE ? `${API_BASE}${url}` : url;
     return (await axios.post(fullUrl, data, config)).data;
 }

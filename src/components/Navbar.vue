@@ -112,6 +112,10 @@
     const open = ref(false);
     const isFixed = ref(false);
 
+    watch(open, (v) => {
+        document.body.style.overflow = v ? "hidden" : "";
+    });
+
     watch(
         () => route.fullPath,
         () => {
@@ -384,12 +388,14 @@ ul.open {
 @media (max-width: 63.99rem) {
   /* pannello dropdown sotto la barra */
   .navbar > ul {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 3200;
-  }
+  position: fixed;        /* ✅ ERA absolute */
+  top: var(--topbar-h, 0);
+  left: 0;
+  right: 0;
+  bottom: 0;              /* ✅ copre tutta la pagina */
+  z-index: 4000;
+  overflow-y: auto;
+}
 
   .navbar > ul.open {
     background: rgba(0, 0, 0, 0.94) !important;

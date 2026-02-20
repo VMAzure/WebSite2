@@ -341,6 +341,7 @@
     import axios from "axios"; // lo puoi anche togliere dopo, vedi sotto
     import { post, get } from "@/api/usatoPublic";
     import { nbtListingDefault } from "@/content/nbtListingDefault";
+    import { fetchNbtCategorie } from "@/api/usatoPublic";
 
     // ====== BLOCCO UX (no BE/DB: default FE) ======
     const nbtUx = computed(() => nbtListingDefault || null);
@@ -728,7 +729,7 @@
         error.value = "";
 
         try {
-            const data = await get(`/nbt/${encodeURIComponent(slug.value)}/categorie`);
+            const data = await fetchNbtCategorie(slug.value);
 
 
             const arr = Array.isArray(data)

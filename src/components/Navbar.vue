@@ -245,6 +245,11 @@
   left: 0;
   right: 0;
 
+  .navbar.navbar-open {
+  background: rgba(0,0,0,0.88) !important;
+  background-color: rgba(0,0,0,0.88) !important;
+}
+
   /* ✅ TopBar gestisce --topbar-h (e quando sparisce diventa 0px) */
   top: var(--topbar-h, clamp(3.4rem, 6vw, 5.4rem));
 
@@ -387,14 +392,16 @@ ul.open {
 ========================================================= */
 @media (max-width: 63.99rem) {
   /* pannello dropdown sotto la barra */
-  .navbar > ul {
-  position: fixed;        /* ✅ ERA absolute */
-  top: var(--topbar-h, 0);
+.navbar > ul {
+  position: fixed;
+  top: 0;                 /* ✅ sempre da top viewport */
   left: 0;
   right: 0;
-  bottom: 0;              /* ✅ copre tutta la pagina */
+  bottom: 0;
   z-index: 4000;
   overflow-y: auto;
+
+  padding-top: 72px;      /* ✅ spazio per la barra (hamburger/X) */
 }
 
   .navbar > ul.open {

@@ -3,13 +3,13 @@
   <nav
     ref="navEl"
     :class="[
-  'navbar',
-  {
-    'navbar-overlay': isHome && !isFixed,
-    'navbar-fixed': isFixed,
-    'navbar-open': open, // ✅ AGGIUNTA: quando menu è aperto
-  },
-]"
+      'navbar',
+      {
+        'navbar-overlay': isHome && !isFixed,
+        'navbar-fixed': isFixed,
+        'navbar-open': open, // ✅ quando menu è aperto
+      },
+    ]"
     class="navbar-full"
     :style="{
       '--bg-solid': settings.secondary_color,
@@ -97,7 +97,6 @@
         return false;
     });
 
-
     const isHome = computed(() => {
         const p = String(route.path || "").toLowerCase();
         const s = effectiveSlug.value.toLowerCase();
@@ -107,7 +106,6 @@
         if (s && (p === `/index/${s}` || p === `/index/${s}/`)) return true;
         return false;
     });
-
 
     const open = ref(false);
     const isFixed = ref(false);
@@ -175,7 +173,6 @@
 
     const usatoVetrinaPath = computed(() => toTenantPath("/usato-vetrina"));
 
-
     const menuItems = computed(() => {
         const visibility = props.settings?.servizi_visibili || {};
         const details = props.settings?.servizi_dettaglio || {};
@@ -206,7 +203,6 @@
         // domain tenant: path pulito
         return path;
     }
-
 </script>
 
 <style scoped>
@@ -304,8 +300,14 @@ ul {
   text-align: center;
 }
 
+/* base */
 ul.open {
   display: flex;
+  background: rgba(0, 0, 0, 0.94);
+  background-color: rgba(0, 0, 0, 0.94);
+  opacity: 1;
+  backdrop-filter: blur(0.6rem);
+  -webkit-backdrop-filter: blur(0.6rem);
 }
 
 .mobile-item {
@@ -334,7 +336,7 @@ ul.open {
 ============================================ */
 .mobile-header {
   display: flex;
-  justify-content: space-between; /* ✅ brand a sinistra, hamburger a destra */
+  justify-content: space-between;
   align-items: center;
   padding: clamp(0.8rem, 4vw, 1.2rem);
   gap: 0.75rem;
@@ -358,7 +360,7 @@ ul.open {
 }
 
 .navbrandLogo {
-  height: 1.6rem; /* stile barra come reference */
+  height: 1.6rem;
   max-width: 10rem;
   object-fit: contain;
   display: block;
@@ -376,13 +378,12 @@ ul.open {
 }
 
 /* =========================================================
-  ✅ FIX SOLO MOBILE: il menu aperto deve avere fondo scuro
-  - NON tocca desktop
-  - NON cambia layout/colonne
-  - Funziona sia in overlay home che fuori
+  ✅ FIX MENU MOBILE (QUELLO CHE TI MANCA):
+  - pannello OPEN completamente OPACO
+  - NESSUN blur sul pannello (il blur lo rende “lavato”)
+  - testo link forzato pieno e senza ombre
 ========================================================= */
 @media (max-width: 63.99rem) {
-  /* pannello dropdown sotto la barra */
   .navbar > ul {
     position: absolute;
     top: 100%;
@@ -391,19 +392,43 @@ ul.open {
     z-index: 3200;
   }
 
-  .navbar > ul.open {
-    background: rgba(0, 0, 0, 0.94) !important;
-    background-color: rgba(0, 0, 0, 0.94) !important;
-    opacity: 1 !important;              /* ✅ evita trasparenze ereditate */
-    backdrop-filter: blur(0.6rem);
-    -webkit-backdrop-filter: blur(0.6rem);
-  }
-}
+  /* ✅ pannello open: opaco + niente blur */
+  .navbar.navbar-open > ul.open,
+  .navbar-overlay.navbar-open > ul.open,
+  .navbar-fixed.navbar-open > ul.open {
+    background: rgba(0, 0, 0, 0.98) !important;
+    background-color: rgba(0, 0, 0, 0.98) !important;
 
-.navbar > ul.open .nav-link {
-  opacity: 1 !important;
-  color: #fff !important;
-  text-shadow: none !important;
+    opacity: 1 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+
+    backdrop-filter: none !important;          /* 🔥 questo è il punto */
+    -webkit-backdrop-filter: none !important;  /* 🔥 questo è il punto */
+  }
+
+  /* ✅ testo: pieno e leggibile */
+  .navbar.navbar-open > ul.open .nav-link,
+  .navbar-overlay.navbar-open > ul.open .nav-link,
+  .navbar-fixed.navbar-open > ul.open .nav-link {
+    color: #fff !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+    font-weight: 700 !important;
+    filter: none !important;
+    -webkit-filter: none !important;
+  }
+
+  /* ✅ separatori un filo più visibili */
+  .navbar.navbar-open > ul.open .mobile-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+  }
+
+  /* ✅ feedback tap */
+  .navbar.navbar-open > ul.open .nav-link:active,
+  .navbar.navbar-open > ul.open .nav-link:hover {
+    color: var(--accent) !important;
+  }
 }
 
 /* ============================================
@@ -422,7 +447,6 @@ ul.open {
     gap: 3rem;
     padding: 1.4rem 0;
 
-    /* desktop: niente pannello assoluto */
     position: static;
     background: transparent;
     backdrop-filter: none;

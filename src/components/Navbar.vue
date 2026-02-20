@@ -382,8 +382,8 @@ ul.open {
   - Funziona sia in overlay home che fuori
 ========================================================= */
 @media (max-width: 63.99rem) {
-  /* pannello dropdown sotto la barra (così non “sporchi” la pagina sotto) */
-  ul {
+  /* pannello dropdown sotto la barra */
+  .navbar > ul {
     position: absolute;
     top: 100%;
     left: 0;
@@ -391,12 +391,19 @@ ul.open {
     z-index: 3200;
   }
 
-  ul.open {
-    background: rgba(0, 0, 0, 0.92) !important;
-    background-color: rgba(0, 0, 0, 0.92) !important;
+  .navbar > ul.open {
+    background: rgba(0, 0, 0, 0.94) !important;
+    background-color: rgba(0, 0, 0, 0.94) !important;
+    opacity: 1 !important;              /* ✅ evita trasparenze ereditate */
     backdrop-filter: blur(0.6rem);
     -webkit-backdrop-filter: blur(0.6rem);
   }
+}
+
+.navbar > ul.open .nav-link {
+  opacity: 1 !important;
+  color: #fff !important;
+  text-shadow: none !important;
 }
 
 /* ============================================

@@ -10,7 +10,7 @@
         // [{ key, label, iconUrl }]
         items: { type: Array, default: () => [] },
 
-        title: { type: String, default: "Cerca per marche popolari" },
+        title: { type: String, default: "Cerca per marche" },
         queryKey: { type: String, default: "brand" },
     });
 

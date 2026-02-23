@@ -1,3 +1,4 @@
+<!-- src/components/Hero.vue (o dove sta ora) -->
 <script setup>
     import { computed } from "vue";
 
@@ -10,35 +11,56 @@
         return typeof url === "string" && url.trim().length > 0;
     });
 
-    const poster = computed(() => {
+    const posterUrl = computed(() => {
         const p = props.settings?.hero_video_poster;
         return typeof p === "string" && p.trim().length > 0 ? p.trim() : "";
     });
 
-    const bgImageStyle = computed(() => {
+    const heroImageUrl = computed(() => {
         const img = props.settings?.hero_image_url;
-        return img
-            ? { backgroundImage: `url('${encodeURI(img)}')` }
-            : { backgroundImage: "none" };
+        return typeof img === "string" && img.trim().length > 0 ? img.trim() : "";
     });
+
+    // LCP candidate: se ho poster uso poster, altrimenti fallback su hero_image_url
+    const lcpImageUrl = computed(() => posterUrl.value || heroImageUrl.value);
+
+    const safeUrl = (u) => {
+        try {
+            return encodeURI(String(u || "").trim());
+        } catch {
+            return "";
+        }
+    };
 </script>
 
 <template>
   <section class="hero hero-full">
     <!-- MEDIA -->
     <div class="hero-media">
+      <!-- ✅ LCP: sempre un IMG (poster o hero image) -->
+      <img
+        v-if="lcpImageUrl"
+        class="hero-img"
+        :src="safeUrl(lcpImageUrl)"
+        alt=""
+        aria-hidden="true"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
+
+      <!-- ✅ Video sopra (decorazione), non deve essere l’LCP -->
       <video
         v-if="hasVideo"
         class="hero-video"
-        :src="settings.hero_video_url"
-        :poster="poster || undefined"
+        :src="safeUrl(settings.hero_video_url)"
+        :poster="posterUrl ? safeUrl(posterUrl) : undefined"
         autoplay
         muted
         loop
         playsinline
-        preload="metadata"
+        preload="none"
       />
-      <div v-else class="hero-image" :style="bgImageStyle"></div>
     </div>
 
     <!-- Overlay premium -->
@@ -66,14 +88,9 @@
 }
 
 /* HERO */
-/* HERO */
 .hero {
-  height: clamp(62vh, 78vh, 92vh); /* 🔥 +7/+6/+7 vh circa */
-  min-height: clamp(
-    24rem,
-    52vw,
-    44rem
-  ); /* 🔥 un po’ più “alta” anche su desktop */
+  height: clamp(62vh, 78vh, 92vh);
+  min-height: clamp(24rem, 52vw, 44rem);
   position: relative;
   display: flex;
   justify-content: center;
@@ -87,18 +104,21 @@
   z-index: 1;
 }
 
-.hero-video {
+/* ✅ IMG: copre come il background-image, ma è ottimizzabile per LCP */
+.hero-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
-.hero-image {
+/* VIDEO */
+.hero-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  object-fit: cover;
 }
 
 /* OVERLAY */
@@ -126,7 +146,6 @@
   flex-direction: column;
 }
 
-/* testi (puoi lasciare i tuoi) */
 .claim {
   font-size: clamp(2.6rem, 6vw, 4rem);
   font-weight: 400;

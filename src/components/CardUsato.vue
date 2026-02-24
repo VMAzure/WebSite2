@@ -6,14 +6,15 @@
   >
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
-  <img
+      <img
   :src="item.cover_url || PLACEHOLDER_IMG"
   @error="onImgError"
   alt="Foto auto"
   class="main-img"
   width="800"
-  height="640"
-  loading="lazy"
+  height ="640"
+  :loading="priority ? 'eager' : 'lazy'"
+  :fetchpriority="priority ? 'high' : 'auto'"
   decoding="async"
 />
 
@@ -50,6 +51,8 @@
         item: { type: Object, required: true },
         settings: { type: Object, required: true },
 
+        // ✅ nuova prop: solo 1 card sopra la fold
+        priority: { type: Boolean, default: false },
     });
 
     const PLACEHOLDER_IMG = "/placeholder-car.png";

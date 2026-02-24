@@ -221,6 +221,8 @@
     });
 
     const initialCards = computed(() => filteredCards.value.slice(0, 8));
+    const firstCard = computed(() => initialCards.value[0] || null);
+    const restCards = computed(() => initialCards.value.slice(1));
 
     // ============================
     // Data fetch (single)
@@ -383,14 +385,25 @@
       <div v-if="loading" class="state">Caricamento…</div>
       <div v-else-if="error" class="state">{{ error }}</div>
 
-      <div v-else class="grid">
+<div v-else class="grid">
+  <!-- 1) Prima card: eager/high (LCP stabile) -->
   <CardUsato
-    v-for="(c, i) in initialCards"
+    v-if="firstCard"
+    :key="firstCard.id_auto"
+    :slug="slug"
+    :item="firstCard"
+    :settings="settings"
+    :priority="true"
+  />
+
+  <!-- 2) Tutte le altre: lazy -->
+  <CardUsato
+    v-for="c in restCards"
     :key="c.id_auto"
     :slug="slug"
     :item="c"
     :settings="settings"
-    :priority="i === 0"
+    :priority="false"
   />
 </div>
     </div>

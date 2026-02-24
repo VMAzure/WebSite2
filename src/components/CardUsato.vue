@@ -92,10 +92,6 @@ CARD USATO — BLINDATA (design system compliant)
   transition:
     transform 0.18s ease,
     border-color 0.18s ease;
-
-  content-visibility: auto;
-  contain-intrinsic-size: 420px 340px;
-
 }
 
 .card:hover {

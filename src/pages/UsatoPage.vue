@@ -383,13 +383,14 @@
       <div v-if="loading" class="state">Caricamento…</div>
       <div v-else-if="error" class="state">{{ error }}</div>
 
-<div v-else class="grid">
+      <div v-else class="grid">
   <CardUsato
-    v-for="c in initialCards"
+    v-for="(c, i) in initialCards"
     :key="c.id_auto"
     :slug="slug"
     :item="c"
     :settings="settings"
+    :priority="i === 0"
   />
 </div>
     </div>

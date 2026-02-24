@@ -12,8 +12,8 @@
   alt="Foto auto"
   class="main-img"
   width="800"
-  height ="640"
-  :loading="priority ? 'eager' : 'lazy'"
+ height ="640"
+  loading="lazy"
   :fetchpriority="priority ? 'high' : 'auto'"
   decoding="async"
 />

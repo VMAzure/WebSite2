@@ -191,6 +191,7 @@
     // Filter + sort
     // ============================
     const filteredCards = computed(() => {
+        const initialCards = computed(() => filteredCards.value.slice(0, 8));
         const brand = qBrand.value;
         const yearMin = toInt(qYearMin.value);
         const priceMax = toInt(qPriceMax.value);
@@ -382,14 +383,15 @@
       <div v-else-if="error" class="state">{{ error }}</div>
 
       <div v-else class="grid">
-        <CardUsato
-          v-for="c in filteredCards"
-          :key="c.id_auto"
-          :slug="slug"
-          :item="c"
-          :settings="settings"
-        />
-      </div>
+  <CardUsato
+    v-for="(c, i) in initialCards"
+    :key="c.id_auto"
+    :slug="slug"
+    :item="c"
+    :settings="settings"
+    :priority="i === 0"
+  />
+</div>
     </div>
   </section>
 </template>

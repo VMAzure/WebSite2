@@ -127,8 +127,7 @@
 
 <style scoped>
 .hero-full {
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
+  width: 100%;
   display: block;
   overflow: hidden;
 }

@@ -7,11 +7,14 @@
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
       <img
-        :src="item.cover_url || PLACEHOLDER_IMG"
-        @error="onImgError"
-        alt="Foto auto"
-        class="main-img"
-      />
+  :src="item.cover_url || PLACEHOLDER_IMG"
+  @error="onImgError"
+  alt="Foto auto"
+  class="main-img"
+  :loading="priority ? 'eager' : 'lazy'"
+  :fetchpriority="priority ? 'high' : 'auto'"
+  decoding="async"
+/>
 
       <!-- PREZZO (badge sull’immagine) -->
       <div class="price-badge">
@@ -43,8 +46,11 @@
      */
     defineProps({
         slug: { type: String, required: true },
-        item: { type: Object, required: true }, // CardUsatoDto
+        item: { type: Object, required: true },
         settings: { type: Object, required: true },
+
+        // ✅ nuova prop: solo 1 card sopra la fold
+        priority: { type: Boolean, default: false },
     });
 
     const PLACEHOLDER_IMG = "/placeholder-car.png";

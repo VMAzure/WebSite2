@@ -6,12 +6,14 @@
   >
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
-      <img
+   <img
   :src="item.cover_url || PLACEHOLDER_IMG"
   @error="onImgError"
   alt="Foto auto"
   class="main-img"
-  loading="lazy"
+  width="800"
+  height="640"
+  :loading="priority ? 'eager' : 'lazy'"
   :fetchpriority="priority ? 'high' : 'auto'"
   decoding="async"
 />

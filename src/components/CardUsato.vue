@@ -11,10 +11,9 @@
   @error="onImgError"
   alt="Foto auto"
   class="main-img"
-  width="800"
-  height="640"
+  width="500"
+  height="400"
   :loading="priority ? 'eager' : 'lazy'"
-  :fetchpriority="priority ? 'high' : 'auto'"
   decoding="async"
 />
 

@@ -384,13 +384,13 @@
 
       <div v-else class="grid">
   <CardUsato
-  v-for="(c, i) in filteredCards.slice(0, 8)"
-  :key="c.id_auto"
-  :slug="slug"
-  :item="c"
-  :settings="settings"
-  :priority="i === 0"
-/>
+    v-for="(c, i) in initialCards"
+    :key="c.id_auto"
+    :slug="slug"
+    :item="c"
+    :settings="settings"
+    :priority="i === 0"
+  />
 </div>
     </div>
   </section>

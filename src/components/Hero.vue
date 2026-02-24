@@ -31,6 +31,46 @@
             return "";
         }
     };
+
+    const supabaseImg = (url, { w, q = 70, fmt = "webp" } = {}) => {
+        const raw = String(url || "").trim();
+        if (!raw) return "";
+
+        try {
+            const u = new URL(raw);
+
+            // Supabase public object URL:
+            // /storage/v1/object/public/<bucket>/<path>
+            // Transform endpoint:
+            // /storage/v1/render/image/public/<bucket>/<path>?width=...&quality=...&format=...
+
+            if (u.pathname.includes("/storage/v1/object/public/")) {
+                u.pathname = u.pathname.replace(
+                    "/storage/v1/object/public/",
+                    "/storage/v1/render/image/public/"
+                );
+            }
+
+            u.searchParams.set("width", String(w));
+            u.searchParams.set("quality", String(q));
+            u.searchParams.set("format", String(fmt));
+
+            return u.toString();
+        } catch {
+            return safeUrl(raw);
+        }
+    };
+
+    const srcset = computed(() => {
+        const base = lcpImageUrl.value;
+        if (!base) return "";
+
+        // target: mobile-first
+        const candidates = [480, 768, 1024, 1280, 1600];
+        return candidates
+            .map((w) => `${supabaseImg(base, { w, q: 70, fmt: "webp" })} ${w}w`)
+            .join(", ");
+    });
 </script>
 
 <template>
@@ -39,15 +79,19 @@
     <div class="hero-media">
       <!-- ✅ LCP: sempre un IMG (poster o hero image) -->
       <img
-        v-if="lcpImageUrl"
-        class="hero-img"
-        :src="safeUrl(lcpImageUrl)"
-        alt=""
-        aria-hidden="true"
-        loading="eager"
-        decoding="async"
-        fetchpriority="high"
-      />
+  v-if="lcpImageUrl"
+  class="hero-img"
+  :src="safeUrl(lcpImageUrl)"
+  :srcset="srcset || undefined"
+  sizes="100vw"
+  width="1920"
+  height="1080"
+  alt=""
+  aria-hidden="true"
+  loading="eager"
+  decoding="async"
+  fetchpriority="high"
+/>
 
       <!-- ✅ Video sopra (decorazione), non deve essere l’LCP -->
       <video

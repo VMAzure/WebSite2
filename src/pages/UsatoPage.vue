@@ -191,7 +191,6 @@
     // Filter + sort
     // ============================
     const filteredCards = computed(() => {
-        const initialCards = computed(() => filteredCards.value.slice(0, 8));
         const brand = qBrand.value;
         const yearMin = toInt(qYearMin.value);
         const priceMax = toInt(qPriceMax.value);
@@ -220,6 +219,8 @@
 
         return arr;
     });
+
+    const initialCards = computed(() => filteredCards.value.slice(0, 8));
 
     // ============================
     // Data fetch (single)

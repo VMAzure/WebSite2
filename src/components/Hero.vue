@@ -39,17 +39,19 @@
         try {
             const u = new URL(raw);
 
-            // Supabase public object URL:
-            // /storage/v1/object/public/<bucket>/<path>
-            // Transform endpoint:
-            // /storage/v1/render/image/public/<bucket>/<path>?width=...&quality=...&format=...
+            // ✅ Applica trasformazioni SOLO se è davvero Supabase object/public
+            const isSupabasePublic =
+                u.pathname.includes("/storage/v1/object/public/");
 
-            if (u.pathname.includes("/storage/v1/object/public/")) {
-                u.pathname = u.pathname.replace(
-                    "/storage/v1/object/public/",
-                    "/storage/v1/render/image/public/"
-                );
+            if (!isSupabasePublic) {
+                // 👇 Niente query params inventati su URL esterni (evita 404/random LCP)
+                return safeUrl(raw);
             }
+
+            u.pathname = u.pathname.replace(
+                "/storage/v1/object/public/",
+                "/storage/v1/render/image/public/"
+            );
 
             u.searchParams.set("width", String(w));
             u.searchParams.set("quality", String(q));
@@ -78,10 +80,10 @@
     <!-- MEDIA -->
     <div class="hero-media">
       <!-- ✅ LCP: sempre un IMG (poster o hero image) -->
-      <img
+  <img
   v-if="lcpImageUrl"
   class="hero-img"
-  :src="safeUrl(lcpImageUrl)"
+  :src="supabaseImg(lcpImageUrl, { w: 1200, q: 70, fmt: 'webp' })"
   :srcset="srcset || undefined"
   sizes="100vw"
   width="1920"

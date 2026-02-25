@@ -7,9 +7,7 @@
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
  <img
-  :src="priority 
-  ? transformImg(item.cover_url, 800) 
-  : transformImg(item.cover_url, 600)"
+  :src="imgSrc"
   @error="onImgError"
   alt="Foto auto"
   class="main-img"

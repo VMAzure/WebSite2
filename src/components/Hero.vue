@@ -100,7 +100,7 @@
         v-if="hasVideo"
         class="hero-video"
         :src="safeUrl(settings.hero_video_url)"
-        :poster="posterUrl ? safeUrl(posterUrl) : undefined"
+        :poster="posterUrl.value ? safeUrl(posterUrl.value) : undefined"
         autoplay
         muted
         loop
@@ -133,13 +133,28 @@
 }
 
 /* HERO */
+
 .hero {
-  height: clamp(62vh, 78vh, 92vh);
-  min-height: clamp(24rem, 52vw, 44rem);
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+
+  /* fallback */
+  height: clamp(62vh, 78vh, 92vh);
+  min-height: clamp(24rem, 52vw, 44rem);
+}
+
+/* ✅ mobile viewport units stabili (riduce CLS da address bar) */
+@supports (height: 1svh) {
+  .hero {
+    height: clamp(62svh, 78svh, 92svh);
+  }
+}
+@supports (height: 1dvh) {
+  .hero {
+    height: clamp(62dvh, 78dvh, 92dvh);
+  }
 }
 
 /* MEDIA LAYER */

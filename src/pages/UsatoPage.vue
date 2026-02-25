@@ -397,14 +397,14 @@
   />
 
   <!-- 2) Tutte le altre: lazy -->
-  <CardUsato
-    v-for="c in restCards"
-    :key="c.id_auto"
-    :slug="slug"
-    :item="c"
-    :settings="settings"
-    :priority="false"
-  />
+ <CardUsato
+  v-for="(item, i) in items"
+  :key="item.id_auto"
+  :item="item"
+  :slug="slug"
+  :settings="settings"
+  :priority="i === 0"
+/>
 </div>
     </div>
   </section>

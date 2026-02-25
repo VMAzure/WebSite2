@@ -13,14 +13,7 @@
       <div class="grid">
         <!-- LOGO / BRAND -->
         <div class="col brand">
-          <img
-  v-if="settings?.logo_web"
-  :src="settings.logo_web"
-  class="logo"
-  alt="Logo"
-  width="160"
-  height="52"
-/>
+          <img v-if="settings?.logo_web" :src="settings.logo_web" class="logo" alt="Logo" />
           <div v-else class="brandName">{{ settings?.meta_title || settings?.company_name || "" }}</div>
 
           <p v-if="settings?.meta_description" class="brandDesc">
@@ -156,7 +149,7 @@
 </template>
 
 <script setup>
-    import { computed } from "vue";
+    import { computed, onMounted } from "vue";
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
 
@@ -520,11 +513,5 @@
     align-items: center;
     text-align: left;
   }
-
-  .logo {
-  width: auto;
-  height: auto;
-  aspect-ratio: 160 / 52;
-}
 }
 </style>

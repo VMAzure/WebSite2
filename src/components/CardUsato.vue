@@ -7,9 +7,7 @@
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
  <img
-  :src="priority 
-  ? transformImg(item.cover_url, 800) 
-  : transformImg(item.cover_url, 600)"
+  :src="item.cover_url || PLACEHOLDER_IMG"
   @error="onImgError"
   alt="Foto auto"
   class="main-img"
@@ -70,29 +68,6 @@
         img.onerror = null;
 
         img.src = PLACEHOLDER_IMG;
-    }
-
-    function transformImg(url, width = 800) {
-        if (!url) return PLACEHOLDER_IMG;
-
-        try {
-            const u = new URL(url);
-
-            if (u.pathname.includes("/storage/v1/object/public/")) {
-                u.pathname = u.pathname.replace(
-                    "/storage/v1/object/public/",
-                    "/storage/v1/render/image/public/"
-                );
-                u.searchParams.set("width", width);
-                u.searchParams.set("quality", "70");
-                u.searchParams.set("format", "webp");
-                return u.toString();
-            }
-
-            return url;
-        } catch {
-            return url;
-        }
     }
 </script>
 

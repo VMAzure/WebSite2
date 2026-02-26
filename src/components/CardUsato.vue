@@ -6,8 +6,8 @@
   >
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
- <img
-    :src="optimizeSupabase(item.cover_url, 800) || PLACEHOLDER_IMG"
+<img
+  :src="buildImgSrc(item.cover_url, 800)"
   @error="onImgError"
   alt="Foto auto"
   class="main-img"
@@ -44,18 +44,31 @@
      * ⚠️ COMPONENTE CRITICO — CARD USATO
      * - Rapporto immagini 5:4 OBBLIGATORIO
      * - Non fare fetch qui dentro
-     * - Spacing e layout seguono il design system
+     * - Layout stabile (no CLS)
      */
-    defineProps({
+    const props = defineProps({
         slug: { type: String, required: true },
         item: { type: Object, required: true },
         settings: { type: Object, required: true },
-
-        // ✅ nuova prop: solo 1 card sopra la fold
         priority: { type: Boolean, default: false },
     });
 
-    const PLACEHOLDER_IMG = "/placeholder-car.png";
+    // ✅ placeholder robusto anche se l'app non è servita da "/"
+    const PLACEHOLDER_IMG = `${import.meta.env.BASE_URL}placeholder-car.png`;
+
+    /**
+     * Ritorna una src "sicura" senza rompere:
+     * 1) se cover_url manca => placeholder
+     * 2) se cover_url è supabase public => tenta transformer render/image
+     * 3) altrimenti usa url originale
+     */
+    function buildImgSrc(url, width = 800) {
+        const raw = (url || "").toString().trim();
+        if (!raw) return PLACEHOLDER_IMG;
+
+        const transformed = optimizeSupabase(raw, width);
+        return transformed || raw || PLACEHOLDER_IMG;
+    }
 
     function optimizeSupabase(url, width = 800) {
         if (!url) return "";
@@ -63,16 +76,18 @@
         try {
             const u = new URL(url);
 
-            // Applichiamo solo a supabase storage "public"
+            // ✅ se NON è supabase storage public, non toccare
             if (!u.pathname.includes("/storage/v1/object/public/")) return url;
 
-            // Passa al CDN transformer di Supabase
+            // ✅ se è già "render/image", non ritrasformare
+            if (u.pathname.includes("/storage/v1/render/image/public/")) return url;
+
+            // ✅ prova transformer (se supportato)
             u.pathname = u.pathname.replace(
                 "/storage/v1/object/public/",
-                "/storage/v1/render/image/public/"
+                "/storage/v1/render/image/public/",
             );
 
-            // Parametri di resizing/compressione
             u.searchParams.set("width", String(width));
             u.searchParams.set("quality", "70");
             u.searchParams.set("format", "webp");
@@ -86,13 +101,19 @@
     function onImgError(e) {
         const img = e.target;
 
-        // ✅ evita loop infinito
+        // ✅ step 1: se stiamo usando URL "render/image", riprova con l'originale (object/public)
+        if (img?.src && img.src.includes("/storage/v1/render/image/public/") && props.item?.cover_url) {
+            const raw = String(props.item.cover_url).trim();
+            if (raw && raw.includes("/storage/v1/object/public/")) {
+                img.src = raw; // retry senza transformer
+                return;
+            }
+        }
+
+        // ✅ step 2: placeholder (una sola volta)
         if (img.dataset.fallbackApplied === "1") return;
         img.dataset.fallbackApplied = "1";
-
-        // ✅ stacca l’handler, così anche se il placeholder fallisce non rientra qui
         img.onerror = null;
-
         img.src = PLACEHOLDER_IMG;
     }
 </script>

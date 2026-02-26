@@ -34,7 +34,7 @@ app.use(
 );
 
 // fallback SPA (finché non hai SSR vero)
-app.get("*", (_, res) => {
+app.use((req, res) => {
     res.sendFile(path.join(distDir, "index.html"));
 });
 

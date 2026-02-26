@@ -1,14 +1,24 @@
 <!doctype html>
-<html lang="en">
-  <head>
+<html lang="it">
+<head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>website2</title>
-  </head>
 
-  <body>
+    <!-- SEO baseline (per-route lo farà SSR) -->
+    <title>website2</title>
+    <meta name="description" content="Concessionaria auto: usato, noleggio e contatti. Scopri le offerte disponibili." />
+    <meta name="robots" content="index,follow" />
+
+    <!-- Hints: terze parti viste in Lighthouse -->
+    <link rel="preconnect" href="https://cdn.iubenda.com" crossorigin />
+    <link rel="preconnect" href="https://*.iubenda.com" crossorigin />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+</head>
+
+<body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
-  </body>
+</body>
 </html>

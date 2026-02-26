@@ -53,9 +53,9 @@
                 "/storage/v1/render/image/public/"
             );
 
-            if (Number.isFinite(w) && w > 0) u.searchParams.set("width", String(w));
-            if (Number.isFinite(q) && q > 0) u.searchParams.set("quality", String(q));
-            if (fmt) u.searchParams.set("format", String(fmt));
+            u.searchParams.set("width", String(w));
+            u.searchParams.set("quality", String(q));
+            u.searchParams.set("format", String(fmt));
 
             return u.toString();
         } catch {
@@ -80,10 +80,10 @@
     <!-- MEDIA -->
     <div class="hero-media">
       <!-- ✅ LCP: sempre un IMG (poster o hero image) -->
- <img
+  <img
   v-if="lcpImageUrl"
   class="hero-img"
-  :src="supabaseImg(lcpImageUrl, { w: 960, q: 70, fmt: 'webp' })"
+  :src="supabaseImg(lcpImageUrl, { w: 1200, q: 70, fmt: 'webp' })"
   :srcset="srcset || undefined"
   sizes="100vw"
   width="1920"
@@ -93,7 +93,6 @@
   loading="eager"
   decoding="async"
   fetchpriority="high"
-  importance="high"
 />
 
       <!-- ✅ Video sopra (decorazione), non deve essere l’LCP -->

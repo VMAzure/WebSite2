@@ -1,5 +1,6 @@
 <!-- src/components/Navbar.vue -->
 <template>
+  <!-- ✅ Spacer in-flow: riserva spazio quando la navbar diventa fixed (zero CLS) -->
   <nav
     ref="navEl"
     :class="[
@@ -20,22 +21,25 @@
     <!-- ===== MOBILE HEADER ===== -->
     <div class="mobile-header">
       <!-- ✅ BRAND: appare solo quando la navbar è fixed (scroll) -->
-      <router-link
-        v-if="isFixed"
-        class="navbrand"
-        :to="isPathTenant ? `/${effectiveSlug}` : `/`"
-        aria-label="Home"
-      >
-        <img
-          v-if="settings?.logo_web"
-          :src="settings.logo_web"
-          class="navbrandLogo"
-          alt="logo"
-        />
-        <span v-else class="navbrandText">
-          {{ settings?.company_name || settings?.meta_title || effectiveSlug || "Home" }}
-        </span>
-      </router-link>
+     <router-link
+  class="navbrand"
+  :class="{ 'navbrand-hidden': !isFixed }"
+  :to="isPathTenant ? `/${effectiveSlug}` : `/`"
+  aria-label="Home"
+>
+  <img
+    v-if="settings?.logo_web"
+    :src="settings.logo_web"
+    class="navbrandLogo"
+    alt="logo"
+    width="160"
+    height="26"
+    decoding="async"
+  />
+  <span v-else class="navbrandText">
+    {{ settings?.company_name || settings?.meta_title || effectiveSlug || "Home" }}
+  </span>
+</router-link>
 
       <button class="hamburger" @click="open = !open" aria-label="Apri menu">
         <i class="fa-solid" :class="open ? 'fa-xmark' : 'fa-bars'"></i>
@@ -123,6 +127,7 @@
 
     /* ✅ FIX overlap: quando navbar diventa fixed, aggiungo padding-top al body */
     const navEl = ref(null);
+    const navH = ref(0);
 
     const applyBodyOffset = async () => {
         await nextTick();

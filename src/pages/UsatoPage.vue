@@ -220,9 +220,8 @@
         return arr;
     });
 
-    const initialCards = computed(() => filteredCards.value.slice(0, 8));
-    const firstCard = computed(() => initialCards.value[0] || null);
-    const restCards = computed(() => initialCards.value.slice(1));
+    const firstCard = computed(() => filteredCards.value[0] || null);
+    const restCards = computed(() => filteredCards.value.slice(1));
 
     // ============================
     // Data fetch (single)
@@ -386,7 +385,7 @@
       <div v-else-if="error" class="state">{{ error }}</div>
 
 <div v-else class="grid">
-  <!-- 1) Prima card: eager/high (LCP stabile) -->
+  <!-- 1) Prima card: eager/high -->
   <CardUsato
     v-if="firstCard"
     :key="firstCard.id_auto"
@@ -397,14 +396,14 @@
   />
 
   <!-- 2) Tutte le altre: lazy -->
- <CardUsato
-  v-for="(item, i) in items"
-  :key="item.id_auto"
-  :item="item"
-  :slug="slug"
-  :settings="settings"
-  :priority="i === 0"
-/>
+  <CardUsato
+    v-for="item in restCards"
+    :key="item.id_auto"
+    :slug="slug"
+    :item="item"
+    :settings="settings"
+    :priority="false"
+  />
 </div>
     </div>
   </section>

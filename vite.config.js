@@ -38,7 +38,6 @@ export default defineConfig({
                 secure: false,
             },
 
-
             // ✅ tutto il resto continua come prima
             "/api": {
                 target: "https://coreapi-production-ca29.up.railway.app",
@@ -46,7 +45,18 @@ export default defineConfig({
                 secure: false,
             },
         },
+    },
 
+    // ✅ AGGIUNTA: split CSS + vendor chunk
+    build: {
+        cssCodeSplit: true,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ["vue", "vue-router", "pinia"],
+                },
+            },
+        },
     },
 
     cacheDir: ".vite-cache",

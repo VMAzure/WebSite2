@@ -7,7 +7,7 @@
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
  <img
-  :src="item.cover_url || PLACEHOLDER_IMG"
+    :src="optimizeSupabase(item.cover_url, 800) || PLACEHOLDER_IMG"
   @error="onImgError"
   alt="Foto auto"
   class="main-img"
@@ -56,6 +56,32 @@
     });
 
     const PLACEHOLDER_IMG = "/placeholder-car.png";
+
+    function optimizeSupabase(url, width = 800) {
+        if (!url) return "";
+
+        try {
+            const u = new URL(url);
+
+            // Applichiamo solo a supabase storage "public"
+            if (!u.pathname.includes("/storage/v1/object/public/")) return url;
+
+            // Passa al CDN transformer di Supabase
+            u.pathname = u.pathname.replace(
+                "/storage/v1/object/public/",
+                "/storage/v1/render/image/public/"
+            );
+
+            // Parametri di resizing/compressione
+            u.searchParams.set("width", String(width));
+            u.searchParams.set("quality", "70");
+            u.searchParams.set("format", "webp");
+
+            return u.toString();
+        } catch {
+            return url;
+        }
+    }
 
     function onImgError(e) {
         const img = e.target;

@@ -226,6 +226,7 @@ CARD USATO — BLINDATA (design system compliant)
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+   min-height: calc(1.18em * 2); /* riserva 2 righe */
 }
 
 .meta {

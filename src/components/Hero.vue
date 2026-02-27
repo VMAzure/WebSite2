@@ -68,7 +68,7 @@
         if (!base) return "";
 
         // target: mobile-first
-        const candidates = [480, 768, 1024, 1280, 1600];
+        const candidates = [480, 768, 1024, 1280];
         return candidates
             .map((w) => `${supabaseImg(base, { w, q: 70, fmt: "webp" })} ${w}w`)
             .join(", ");
@@ -83,7 +83,7 @@
   <img
   v-if="lcpImageUrl"
   class="hero-img"
-  :src="supabaseImg(lcpImageUrl, { w: 1200, q: 70, fmt: 'webp' })"
+  :src="supabaseImg(lcpImageUrl, { w: 960, q: 70, fmt: 'webp' })"
   :srcset="srcset || undefined"
   sizes="100vw"
   width="1920"

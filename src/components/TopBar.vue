@@ -34,8 +34,10 @@
     const onScroll = () => {
         isHidden.value = window.scrollY > 80;
         // quando è nascosta: navbar deve andare a top: 0
-        if (!isHidden.value) {
-            pushTopbarHeightVar(); // aggiorna solo quando visibile
+        if (isHidden.value) {
+            document.documentElement.style.setProperty("--topbar-h", `0px`);
+        } else {
+            pushTopbarHeightVar();
         }
     };
 
@@ -49,7 +51,10 @@
         if (!el) return;
 
         // se nascosta, forza 0 (non lasciare valori vecchi)
-        if (isHidden.value) return;
+        if (isHidden.value) {
+            document.documentElement.style.setProperty("--topbar-h", `0px`);
+            return;
+        }
 
         const h = Math.ceil(el.getBoundingClientRect().height || 0);
         if (h >= 0)
@@ -204,7 +209,7 @@
   padding: clamp(0.55rem, 1.4vw, 0.95rem) clamp(1rem, 3vw, 1.4rem);
   gap: clamp(0.6rem, 2vw, 1.2rem);
   font-size: clamp(0.85rem, 1.7vw, 1rem);
-  min-height: clamp(3.4rem, 6vw, 5.4rem);
+
   box-shadow: 0 0.25rem 0.9rem rgba(0, 0, 0, 0.08);
   position: relative;
   z-index: 4000;

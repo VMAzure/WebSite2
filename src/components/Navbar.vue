@@ -1,6 +1,12 @@
 <!-- src/components/Navbar.vue -->
 <template>
   <!-- ✅ Spacer in-flow: riserva spazio quando la navbar diventa fixed (zero CLS) -->
+  <div
+    class="navbar-spacer"
+    :style="{ height: isFixed ? `${navH}px` : '0px' }"
+    aria-hidden="true"
+  />
+
   <nav
     ref="navEl"
     :class="[
@@ -21,25 +27,30 @@
     <!-- ===== MOBILE HEADER ===== -->
     <div class="mobile-header">
       <!-- ✅ BRAND: appare solo quando la navbar è fixed (scroll) -->
-     <router-link
-  class="navbrand"
-  :class="{ 'navbrand-hidden': !isFixed }"
-  :to="isPathTenant ? `/${effectiveSlug}` : `/`"
-  aria-label="Home"
->
-  <img
-    v-if="settings?.logo_web"
-    :src="settings.logo_web"
-    class="navbrandLogo"
-    alt="logo"
-    width="160"
-    height="26"
-    decoding="async"
-  />
-  <span v-else class="navbrandText">
-    {{ settings?.company_name || settings?.meta_title || effectiveSlug || "Home" }}
-  </span>
-</router-link>
+      <router-link
+        class="navbrand"
+        :class="{ 'navbrand-hidden': !isFixed }"
+        :to="isPathTenant ? `/${effectiveSlug}` : `/`"
+        aria-label="Home"
+      >
+        <img
+          v-if="settings?.logo_web"
+          :src="settings.logo_web"
+          class="navbrandLogo"
+          alt="logo"
+          width="160"
+          height="26"
+          decoding="async"
+        />
+        <span v-else class="navbrandText">
+          {{
+            settings?.company_name ||
+            settings?.meta_title ||
+            effectiveSlug ||
+            "Home"
+          }}
+        </span>
+      </router-link>
 
       <button class="hamburger" @click="open = !open" aria-label="Apri menu">
         <i class="fa-solid" :class="open ? 'fa-xmark' : 'fa-bars'"></i>
@@ -49,7 +60,10 @@
     <!-- ===== MENU ===== -->
     <ul :class="{ open: open }">
       <li class="mobile-item first-item">
-        <router-link class="nav-link" :to="isPathTenant ? `/${effectiveSlug}` : `/`">
+        <router-link
+          class="nav-link"
+          :to="isPathTenant ? `/${effectiveSlug}` : `/`"
+        >
           Home
         </router-link>
       </li>
@@ -89,7 +103,9 @@
     const route = useRoute();
 
     const slugFromRoute = computed(() => String(route.params?.slug || "").trim());
-    const effectiveSlug = computed(() => String(props.slug || slugFromRoute.value || "").trim());
+    const effectiveSlug = computed(() =>
+        String(props.slug || slugFromRoute.value || "").trim(),
+    );
 
     // source: se sei su /index/:slug o /:slug/... sei path-based
     const isPathTenant = computed(() => {
@@ -118,37 +134,23 @@
         () => route.fullPath,
         () => {
             open.value = false; // ✅ chiude il menu dopo qualsiasi navigazione
-        }
+        },
     );
 
     const onScroll = () => {
         isFixed.value = window.scrollY > 80;
     };
 
-    /* ✅ FIX overlap: quando navbar diventa fixed, aggiungo padding-top al body */
+    /** ✅ Spacer: misuro altezza navbar per riservare spazio quando fixed */
     const navEl = ref(null);
     const navH = ref(0);
 
-    const applyBodyOffset = async () => {
+    const measureNavH = async () => {
         await nextTick();
         const el = navEl.value;
         if (!el) return;
-
-        // se è overlay HOME non deve spingere nulla
-        if (isHome.value && !isFixed.value) {
-            document.body.style.paddingTop = "";
-            return;
-        }
-
-        // se è fixed, compensa l'altezza
-        if (isFixed.value) {
-            const h = Math.ceil(el.getBoundingClientRect().height || 0);
-            document.body.style.paddingTop = h > 0 ? `${h}px` : "";
-            return;
-        }
-
-        // non fixed fuori home: torna normale
-        document.body.style.paddingTop = "";
+        const h = Math.ceil(el.getBoundingClientRect().height || 0);
+        navH.value = h > 0 ? h : 0;
     };
 
     let ro = null;
@@ -156,25 +158,25 @@
     onMounted(() => {
         window.addEventListener("scroll", onScroll, { passive: true });
         onScroll();
-        applyBodyOffset();
+        measureNavH();
 
-        // aggiorna offset se cambia altezza (font/responsive/menu)
+        // aggiorna misura se cambia altezza (font/responsive/menu)
         if ("ResizeObserver" in window) {
-            ro = new ResizeObserver(() => applyBodyOffset());
+            ro = new ResizeObserver(() => measureNavH());
             if (navEl.value) ro.observe(navEl.value);
         } else {
-            window.addEventListener("resize", applyBodyOffset, { passive: true });
+            window.addEventListener("resize", measureNavH, { passive: true });
         }
     });
 
     onUnmounted(() => {
         window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", applyBodyOffset);
+        window.removeEventListener("resize", measureNavH);
         if (ro) ro.disconnect();
-        document.body.style.paddingTop = "";
     });
 
-    watch([isFixed, isHome, open], () => applyBodyOffset());
+    // quando cambia stato (fixed/menu/route), ricalcola altezza
+    watch([isFixed, open, () => route.fullPath], () => measureNavH());
 
     const usatoVetrinaPath = computed(() => toTenantPath("/usato-vetrina"));
 
@@ -212,6 +214,14 @@
 
 <style scoped>
 /* ============================================
+  SPACER (anti-CLS)
+============================================ */
+.navbar-spacer {
+  width: 100%;
+  display: block;
+}
+
+/* ============================================
   BASE
 ============================================ */
 .navbar-full {
@@ -242,7 +252,7 @@
   left: 0;
   right: 0;
 
-  /* ✅ TopBar gestisce --topbar-h (e quando sparisce diventa 0px) */
+  /* ✅ TopBar gestisce --topbar-h */
   top: var(--topbar-h, clamp(3.4rem, 6vw, 5.4rem));
 
   background: transparent !important;
@@ -408,8 +418,8 @@ ul.open {
     filter: none !important;
     -webkit-filter: none !important;
 
-    backdrop-filter: none !important;          /* 🔥 questo è il punto */
-    -webkit-backdrop-filter: none !important;  /* 🔥 questo è il punto */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 
   /* ✅ testo: pieno e leggibile */
@@ -486,4 +496,4 @@ ul.open {
     width: 65%;
   }
 }
-</style>    
+</style>

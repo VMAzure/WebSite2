@@ -128,11 +128,16 @@
     <div class="center">
       <router-link :to="isDev ? `/index/${slug}` : `/`" class="logo-link">
         <img
-          v-if="settings.logo_web"
-          :src="settings.logo_web"
-          class="logo"
-          alt="logo"
-        />
+  v-if="settings.logo_web"
+  :src="settings.logo_web"
+  class="logo"
+  alt="logo"
+  width="160"
+  height="52"
+  decoding="async"
+  loading="eager"
+  fetchpriority="high"
+/>
       </router-link>
     </div>
 
@@ -277,6 +282,7 @@
   flex: 1;
   display: flex;
   justify-content: center;
+  min-height: clamp(2.5rem, 4.8vw, 3.2rem);
 }
 .logo-link {
   display: flex;

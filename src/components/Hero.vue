@@ -1,4 +1,4 @@
-<!-- src/components/Hero.vue (o dove sta ora) -->
+<!-- src/components/Hero.vue -->
 <script setup>
     import { computed } from "vue";
 
@@ -6,23 +6,8 @@
         settings: Object,
     });
 
-    const hasVideo = computed(() => {
-        const url = props.settings?.hero_video_url;
-        return typeof url === "string" && url.trim().length > 0;
-    });
-
-    const posterUrl = computed(() => {
-        const p = props.settings?.hero_video_poster;
-        return typeof p === "string" && p.trim().length > 0 ? p.trim() : "";
-    });
-
-    const heroImageUrl = computed(() => {
-        const img = props.settings?.hero_image_url;
-        return typeof img === "string" && img.trim().length > 0 ? img.trim() : "";
-    });
-
-    // LCP candidate: se ho poster uso poster, altrimenti fallback su hero_image_url
-    const lcpImageUrl = computed(() => posterUrl.value || heroImageUrl.value);
+    // ✅ così in template puoi usare "settings.xxx" senza errori
+    const settings = computed(() => props.settings || {});
 
     const safeUrl = (u) => {
         try {
@@ -32,28 +17,31 @@
         }
     };
 
+    const isSupabasePublicUrl = (raw) => {
+        try {
+            const u = new URL(String(raw || "").trim());
+            return u.pathname.includes("/storage/v1/object/public/");
+        } catch {
+            return false;
+        }
+    };
+
     const supabaseImg = (url, { w, q = 70, fmt = "webp" } = {}) => {
         const raw = String(url || "").trim();
         if (!raw) return "";
 
+        // ✅ se NON è supabase public -> ritorna l'url pulito e basta
+        if (!isSupabasePublicUrl(raw)) return safeUrl(raw);
+
         try {
             const u = new URL(raw);
 
-            // ✅ Applica trasformazioni SOLO se è davvero Supabase object/public
-            const isSupabasePublic =
-                u.pathname.includes("/storage/v1/object/public/");
-
-            if (!isSupabasePublic) {
-                // 👇 Niente query params inventati su URL esterni (evita 404/random LCP)
-                return safeUrl(raw);
-            }
-
             u.pathname = u.pathname.replace(
                 "/storage/v1/object/public/",
-                "/storage/v1/render/image/public/"
+                "/storage/v1/render/image/public/",
             );
 
-            u.searchParams.set("width", String(w));
+            if (w) u.searchParams.set("width", String(w));
             u.searchParams.set("quality", String(q));
             u.searchParams.set("format", String(fmt));
 
@@ -63,12 +51,32 @@
         }
     };
 
+    const hasVideo = computed(() => {
+        const url = String(settings.value?.hero_video_url || "").trim();
+        return url.length > 0;
+    });
+
+    const posterUrl = computed(() => {
+        const p = String(settings.value?.hero_video_poster || "").trim();
+        return p.length > 0 ? p : "";
+    });
+
+    const heroImageUrl = computed(() => {
+        const img = String(settings.value?.hero_image_url || "").trim();
+        return img.length > 0 ? img : "";
+    });
+
+    // ✅ LCP candidate: poster > hero_image
+    const lcpImageUrl = computed(() => posterUrl.value || heroImageUrl.value);
+
     const srcset = computed(() => {
         const base = lcpImageUrl.value;
         if (!base) return "";
 
-        // target: mobile-first
-        const candidates = [480, 768, 1024, 1280];
+        // ✅ srcset SOLO per supabase, altrimenti sarebbero URL uguali ripetuti
+        if (!isSupabasePublicUrl(base)) return "";
+
+        const candidates = [320, 480, 768, 1024, 1280];
         return candidates
             .map((w) => `${supabaseImg(base, { w, q: 70, fmt: "webp" })} ${w}w`)
             .join(", ");
@@ -79,28 +87,28 @@
   <section class="hero hero-full">
     <!-- MEDIA -->
     <div class="hero-media">
-      <!-- ✅ LCP: sempre un IMG (poster o hero image) -->
-  <img
-  v-if="lcpImageUrl"
-  class="hero-img"
-  :src="supabaseImg(lcpImageUrl, { w: 960, q: 70, fmt: 'webp' })"
-  :srcset="srcset || undefined"
-  sizes="100vw"
-  width="1920"
-  height="1080"
-  alt=""
-  aria-hidden="true"
-  loading="eager"
-  decoding="async"
-  fetchpriority="high"
-/>
+      <!-- ✅ LCP: IMG sempre (poster o hero image) -->
+      <img
+        v-if="lcpImageUrl"
+        class="hero-img"
+        :src="supabaseImg(lcpImageUrl, { w: 960, q: 70, fmt: 'webp' })"
+        :srcset="srcset || undefined"
+        sizes="100vw"
+        width="1920"
+        height="1080"
+        alt=""
+        aria-hidden="true"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
 
-      <!-- ✅ Video sopra (decorazione), non deve essere l’LCP -->
+      <!-- ✅ Video: decorazione, NON deve bloccare LCP -->
       <video
         v-if="hasVideo"
         class="hero-video"
         :src="safeUrl(settings.hero_video_url)"
-        :poster="posterUrl.value ? safeUrl(posterUrl.value) : undefined"
+        :poster="posterUrl ? safeUrl(posterUrl) : undefined"
         autoplay
         muted
         loop
@@ -133,14 +141,12 @@
 }
 
 /* HERO */
-
 .hero {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
 
-  /* fallback */
   height: clamp(62vh, 78vh, 92vh);
   min-height: clamp(24rem, 52vw, 44rem);
 }
@@ -164,7 +170,7 @@
   z-index: 1;
 }
 
-/* ✅ IMG: copre come il background-image, ma è ottimizzabile per LCP */
+/* ✅ IMG: copre come background-image, ma ottimizzabile per LCP */
 .hero-img {
   width: 100%;
   height: 100%;

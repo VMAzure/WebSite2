@@ -34,14 +34,15 @@
         aria-label="Home"
       >
         <img
-          v-if="settings?.logo_web"
-          :src="settings.logo_web"
-          class="navbrandLogo"
-          alt="logo"
-          width="160"
-          height="26"
-          decoding="async"
-        />
+  v-if="settings?.logo_web"
+  :src="settings.logo_web"
+  class="navbrandLogo"
+  alt="logo"
+  width="160"
+  height="26"
+  decoding="async"
+  loading="lazy"
+/>
         <span v-else class="navbrandText">
           {{
             settings?.company_name ||

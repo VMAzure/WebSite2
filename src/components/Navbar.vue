@@ -30,19 +30,19 @@
       <router-link
         class="navbrand"
         :class="{ 'navbrand-hidden': !isFixed }"
-        :to="isPathTenant ? `/${effectiveSlug}` : `/`"
+        :to="homeTo"
         aria-label="Home"
       >
         <img
-  v-if="settings?.logo_web"
-  :src="settings.logo_web"
-  class="navbrandLogo"
-  alt="logo"
-  width="160"
-  height="26"
-  decoding="async"
-  loading="lazy"
-/>
+          v-if="settings?.logo_web"
+          :src="settings.logo_web"
+          class="navbrandLogo"
+          alt="logo"
+          width="160"
+          height="26"
+          decoding="async"
+          loading="lazy"
+        />
         <span v-else class="navbrandText">
           {{
             settings?.company_name ||
@@ -61,10 +61,7 @@
     <!-- ===== MENU ===== -->
     <ul :class="{ open: open }">
       <li class="mobile-item first-item">
-        <router-link
-          class="nav-link"
-          :to="isPathTenant ? `/${effectiveSlug}` : `/`"
-        >
+        <router-link class="nav-link" :to="homeTo">
           Home
         </router-link>
       </li>
@@ -126,6 +123,25 @@
         if (s && (p === `/${s}` || p === `/${s}/`)) return true;
         if (s && (p === `/index/${s}` || p === `/index/${s}/`)) return true;
         return false;
+    });
+
+    /**
+     * ✅ FIX HOME:
+     * - se ho lo slug e NON sono in un domain-tenant "pulito",
+     *   mando a /index/:slug (così su Railway non cadi in tenant-not-configured)
+     * - se sono già in path tenant, uso /:slug (come prima)
+     * - se sono domain tenant reale, uso "/"
+     */
+    const homeTo = computed(() => {
+        const s = effectiveSlug.value;
+        if (!s) return "/";
+
+        // se sei già in path-based tenant, mantieni quello (compatibilità)
+        if (isPathTenant.value) return `/${s}`;
+
+        // se NON sei path-tenant ma hai slug (tipico: railway /tenant-not-configured),
+        // vai su /index/:slug (safe)
+        return `/index/${s}`;
     });
 
     const open = ref(false);
@@ -394,10 +410,7 @@ ul.open {
 }
 
 /* =========================================================
-  ✅ FIX MENU MOBILE (QUELLO CHE TI MANCA):
-  - pannello OPEN completamente OPACO
-  - NESSUN blur sul pannello (il blur lo rende “lavato”)
-  - testo link forzato pieno e senza ombre
+  ✅ FIX MENU MOBILE
 ========================================================= */
 @media (max-width: 63.99rem) {
   .navbar > ul {
@@ -408,7 +421,6 @@ ul.open {
     z-index: 3200;
   }
 
-  /* ✅ pannello open: opaco + niente blur */
   .navbar.navbar-open > ul.open,
   .navbar-overlay.navbar-open > ul.open,
   .navbar-fixed.navbar-open > ul.open {
@@ -423,7 +435,6 @@ ul.open {
     -webkit-backdrop-filter: none !important;
   }
 
-  /* ✅ testo: pieno e leggibile */
   .navbar.navbar-open > ul.open .nav-link,
   .navbar-overlay.navbar-open > ul.open .nav-link,
   .navbar-fixed.navbar-open > ul.open .nav-link {
@@ -435,12 +446,10 @@ ul.open {
     -webkit-filter: none !important;
   }
 
-  /* ✅ separatori un filo più visibili */
   .navbar.navbar-open > ul.open .mobile-item {
     border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
   }
 
-  /* ✅ feedback tap */
   .navbar.navbar-open > ul.open .nav-link:active,
   .navbar.navbar-open > ul.open .nav-link:hover {
     color: var(--accent) !important;

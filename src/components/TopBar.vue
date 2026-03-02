@@ -126,7 +126,7 @@
 
     <!-- CENTER LOGO -->
     <div class="center">
-      <router-link :to="isDev ? `/index/${slug}` : `/`" class="logo-link">
+      <router-link :to="(isDev || String(route.path || '').toLowerCase().startsWith('/index/')) ? `/index/${slug}` : `/`" class="logo-link">
         <img
   v-if="settings.logo_web"
   :src="settings.logo_web"

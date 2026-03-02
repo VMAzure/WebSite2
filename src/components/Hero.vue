@@ -1,4 +1,4 @@
-<!-- src/components/Hero.vue (o dove sta ora) -->
+<!-- src/components/Hero.vue -->
 <script setup>
     import { computed } from "vue";
 
@@ -6,18 +6,20 @@
         settings: Object,
     });
 
+    const settings = computed(() => props.settings || {});
+
     const hasVideo = computed(() => {
-        const url = props.settings?.hero_video_url;
+        const url = settings.value?.hero_video_url;
         return typeof url === "string" && url.trim().length > 0;
     });
 
     const posterUrl = computed(() => {
-        const p = props.settings?.hero_video_poster;
+        const p = settings.value?.hero_video_poster;
         return typeof p === "string" && p.trim().length > 0 ? p.trim() : "";
     });
 
     const heroImageUrl = computed(() => {
-        const img = props.settings?.hero_image_url;
+        const img = settings.value?.hero_image_url;
         return typeof img === "string" && img.trim().length > 0 ? img.trim() : "";
     });
 
@@ -39,13 +41,9 @@
         try {
             const u = new URL(raw);
 
-            // ✅ Applica trasformazioni SOLO se è davvero Supabase object/public
+            // Applica trasformazioni SOLO se è davvero Supabase object/public
             const isSupabasePublic = u.pathname.includes("/storage/v1/object/public/");
-
-            if (!isSupabasePublic) {
-                // 👇 Niente query params inventati su URL esterni (evita 404/random LCP)
-                return safeUrl(raw);
-            }
+            if (!isSupabasePublic) return safeUrl(raw);
 
             u.pathname = u.pathname.replace(
                 "/storage/v1/object/public/",
@@ -66,7 +64,6 @@
         const base = lcpImageUrl.value;
         if (!base) return "";
 
-        // target: mobile-first
         const candidates = [480, 768, 1024, 1280];
         return candidates
             .map((w) => `${supabaseImg(base, { w, q: 70, fmt: "webp" })} ${w}w`)
@@ -99,12 +96,12 @@
         v-if="hasVideo"
         class="hero-video"
         :src="safeUrl(settings.hero_video_url)"
-        :poster="posterUrl.value ? safeUrl(posterUrl.value) : undefined"
+        :poster="posterUrl ? safeUrl(posterUrl) : undefined"
         autoplay
         muted
         loop
         playsinline
-        preload="none"
+        preload="metadata"
       />
     </div>
 
@@ -131,15 +128,12 @@
   overflow: hidden;
 }
 
-/* HERO */
-
 .hero {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
 
-  /* fallback */
   height: clamp(62vh, 78vh, 92vh);
   min-height: clamp(24rem, 52vw, 44rem);
 }
@@ -156,14 +150,13 @@
   }
 }
 
-/* MEDIA LAYER */
 .hero-media {
   position: absolute;
   inset: 0;
   z-index: 1;
 }
 
-/* ✅ IMG: copre come il background-image, ma è ottimizzabile per LCP */
+/* ✅ IMG: ottimo LCP */
 .hero-img {
   width: 100%;
   height: 100%;
@@ -180,7 +173,6 @@
   object-fit: cover;
 }
 
-/* OVERLAY */
 .overlay {
   position: absolute;
   inset: 0;
@@ -193,7 +185,6 @@
   );
 }
 
-/* CONTENUTO */
 .hero-content {
   position: relative;
   z-index: 5;

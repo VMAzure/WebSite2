@@ -1,6 +1,6 @@
 <!-- src/components/TopBar.vue -->
 <script setup>
-    import { computed, ref, onMounted, onUnmounted, nextTick } from "vue";
+    import { computed, ref, onMounted, onUnmounted } from "vue";
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
 
@@ -9,7 +9,7 @@
         slug: String,
     });
 
-    const tenant = useTenantStore();
+    useTenantStore(); // lo lasciamo perché lo avevi (non cambia nulla)
     const route = useRoute();
 
     const isDev = computed(() => import.meta.env.DEV);
@@ -17,9 +17,7 @@
     /* ✅ HOME robusto (come Navbar) */
     const isHome = computed(() => {
         const p = String(route.path || "").toLowerCase();
-        const s = String(props.slug || route.params?.slug || "")
-            .trim()
-            .toLowerCase();
+        const s = String(props.slug || route.params?.slug || "").trim().toLowerCase();
 
         if (p === "/") return true;
         if (s && (p === `/index/${s}` || p === `/index/${s}/`)) return true;
@@ -28,67 +26,56 @@
         return false;
     });
 
-    /* ✅ stessa soglia della Navbar
-           - QUI: quando scatta, la TOPBAR deve SPARIRE (non restare fixed visibile) */
-    const isHidden = ref(false);
-    const onScroll = () => {
-        isHidden.value = window.scrollY > 80;
-        // quando è nascosta: navbar deve andare a top: 0
+    /* =========================================================
+       ✅ ANTI-CLS: settiamo --topbar-h STABILE e SUBITO
+       - niente misure DOM (niente nextTick, niente RO)
+       - valore diverso tra desktop e mobile
+       ========================================================= */
+    function setTopbarVarStable() {
+        // se la topbar è nascosta, deve essere 0
         if (isHidden.value) {
-            document.documentElement.style.setProperty("--topbar-h", `0px`);
-        } else {
-            pushTopbarHeightVar();
-        }
-    };
-
-    /* ✅ misura altezza reale TopBar e la scrive su :root
-           (serve SOLO quando la topbar è visibile, per tenere navbar overlay sotto topbar) */
-    const topbarEl = ref(null);
-
-    const pushTopbarHeightVar = async () => {
-        await nextTick();
-        const el = topbarEl.value;
-        if (!el) return;
-
-        // se nascosta, forza 0 (non lasciare valori vecchi)
-        if (isHidden.value) {
-            document.documentElement.style.setProperty("--topbar-h", `0px`);
+            document.documentElement.style.setProperty("--topbar-h", "0px");
             return;
         }
 
-        const h = Math.ceil(el.getBoundingClientRect().height || 0);
-        if (h >= 0)
-            document.documentElement.style.setProperty("--topbar-h", `${h}px`);
+        const isMobile = window.matchMedia("(max-width: 900px)").matches;
+
+        // Desktop: una riga (valore molto vicino al tuo clamp precedente)
+        // Mobile: due righe (topbar in colonna), valore stabile -> NO shift
+        const v = isMobile
+            ? "clamp(6.4rem, 10vw, 8.2rem)"
+            : "clamp(3.4rem, 6vw, 5.4rem)";
+
+        document.documentElement.style.setProperty("--topbar-h", v);
+    }
+
+    /* ✅ stessa soglia della Navbar: quando scatta la TOPBAR sparisce */
+    const isHidden = ref(false);
+    const onScroll = () => {
+        const next = window.scrollY > 80;
+        if (next === isHidden.value) return;
+
+        isHidden.value = next;
+        setTopbarVarStable();
     };
 
-    let ro = null;
-
     onMounted(() => {
+        // ✅ set immediato (prima possibile) + listeners
+        setTopbarVarStable();
         window.addEventListener("scroll", onScroll, { passive: true });
 
-        // inizializza
-        onScroll();
-        pushTopbarHeightVar();
-
-        // aggiorna se cambia layout (font, resize, ecc.)
-        if ("ResizeObserver" in window) {
-            ro = new ResizeObserver(() => pushTopbarHeightVar());
-            if (topbarEl.value) ro.observe(topbarEl.value);
-        } else {
-            window.addEventListener("resize", pushTopbarHeightVar, { passive: true });
-        }
+        // resize NON incide su CLS lighthouse; utile se cambiano breakpoint/orientamento
+        window.addEventListener("resize", setTopbarVarStable, { passive: true });
     });
 
     onUnmounted(() => {
         window.removeEventListener("scroll", onScroll);
-        window.removeEventListener("resize", pushTopbarHeightVar);
-        if (ro) ro.disconnect();
+        window.removeEventListener("resize", setTopbarVarStable);
     });
 </script>
 
 <template>
   <div
-    ref="topbarEl"
     :class="[
       'topbar',
       {
@@ -126,24 +113,30 @@
 
     <!-- CENTER LOGO -->
     <div class="center">
-      <router-link :to="(isDev || String(route.path || '').toLowerCase().startsWith('/index/')) ? `/index/${slug}` : `/`" class="logo-link">
+      <router-link
+        :to="
+          (isDev || String(route.path || '').toLowerCase().startsWith('/index/'))
+            ? `/index/${slug}`
+            : `/`
+        "
+        class="logo-link"
+      >
         <img
-  v-if="settings.logo_web"
-  :src="settings.logo_web"
-  class="logo"
-  alt="logo"
-  width="160"
-  height="52"
-  decoding="async"
-  loading="eager"
-  fetchpriority="high"
-/>
+          v-if="settings.logo_web"
+          :src="settings.logo_web"
+          class="logo"
+          alt="logo"
+          width="160"
+          height="52"
+          decoding="async"
+          loading="eager"
+          fetchpriority="high"
+        />
       </router-link>
     </div>
 
     <!-- RIGHT SOCIAL -->
     <div class="right">
-
       <a
         v-if="settings.facebook_url"
         :href="settings.facebook_url"
@@ -152,6 +145,7 @@
       >
         <i class="fa-brands fa-facebook"></i>
       </a>
+
       <a
         v-if="settings.instagram_url"
         :href="settings.instagram_url"
@@ -160,6 +154,7 @@
       >
         <i class="fa-brands fa-instagram"></i>
       </a>
+
       <a
         v-if="settings.tiktok_url"
         :href="settings.tiktok_url"
@@ -168,6 +163,7 @@
       >
         <i class="fa-brands fa-tiktok"></i>
       </a>
+
       <a
         v-if="settings.youtube_url"
         :href="settings.youtube_url"
@@ -176,6 +172,7 @@
       >
         <i class="fa-brands fa-youtube"></i>
       </a>
+
       <a
         v-if="settings.linkedin_url"
         :href="settings.linkedin_url"
@@ -184,6 +181,7 @@
       >
         <i class="fa-brands fa-linkedin"></i>
       </a>
+
       <a
         v-if="settings.x_url"
         :href="settings.x_url"
@@ -192,6 +190,7 @@
       >
         <i class="fa-brands fa-x-twitter"></i>
       </a>
+
       <a
         v-if="settings.whatsapp_url"
         :href="settings.whatsapp_url"
@@ -312,23 +311,6 @@
 .right i:hover {
   opacity: 0.55;
   transform: translateY(-0.1rem);
-}
-
-.privacy-link {
-  color: var(--tertiary);
-  text-decoration: none;
-  font-weight: 400;
-  padding: clamp(0.25rem, 0.7vw, 0.45rem) clamp(0.55rem, 1.2vw, 0.85rem);
-  border: 0.1rem solid var(--tertiary);
-  border-radius: 1.2rem;
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
-  white-space: nowrap;
-}
-.privacy-link:hover {
-  opacity: 0.65;
-  transform: translateY(-0.05rem);
 }
 
 /* DESKTOP */

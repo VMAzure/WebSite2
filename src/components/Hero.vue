@@ -107,7 +107,7 @@
       />
 
       <!-- ✅ Video sopra (decorazione), non deve essere l’LCP -->
- <video
+     <video
   v-if="hasVideo && shouldLoadVideo"
   class="hero-video"
   :src="safeUrl(settings.hero_video_url)"
@@ -117,8 +117,6 @@
   loop
   playsinline
   preload="none"
-  decoding="async"
-  aria-hidden="true"
 />
     </div>
 

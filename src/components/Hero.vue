@@ -1,12 +1,27 @@
 <!-- src/components/Hero.vue -->
 <script setup>
-    import { computed } from "vue";
+    import { computed, ref, onMounted } from "vue";
 
     const props = defineProps({
         settings: Object,
     });
 
     const settings = computed(() => props.settings || {});
+
+    // ✅ VIDEO decorativo: lo carichiamo dopo il primo paint (non nel critical path)
+    const shouldLoadVideo = ref(false);
+
+    onMounted(() => {
+        const kick = () => (shouldLoadVideo.value = true);
+
+        // requestIdleCallback = carica quando il browser è “libero”
+        if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(kick, { timeout: 2000 });
+        } else {
+            // fallback: dopo un attimo dal mount (post paint)
+            setTimeout(kick, 900);
+        }
+    });
 
     const hasVideo = computed(() => {
         const url = settings.value?.hero_video_url;
@@ -92,17 +107,17 @@
       />
 
       <!-- ✅ Video sopra (decorazione), non deve essere l’LCP -->
-      <video
-        v-if="hasVideo"
-        class="hero-video"
-        :src="safeUrl(settings.hero_video_url)"
-        :poster="posterUrl ? safeUrl(posterUrl) : undefined"
-        autoplay
-        muted
-        loop
-        playsinline
-        preload="metadata"
-      />
+     <video
+  v-if="hasVideo && shouldLoadVideo"
+  class="hero-video"
+  :src="safeUrl(settings.hero_video_url)"
+  :poster="posterUrl ? safeUrl(posterUrl) : undefined"
+  autoplay
+  muted
+  loop
+  playsinline
+  preload="none"
+/>
     </div>
 
     <!-- Overlay premium -->

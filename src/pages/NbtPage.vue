@@ -53,16 +53,12 @@
             <div class="cardInner">
               <!-- FRONT -->
               <div class="cardFace cardFront cardFacePad" aria-hidden="false">
-               <img
-  v-if="it.nbt_cat_img"
-  class="cardImg"
-  :src="it.nbt_cat_img"
-  :alt="it.nbt_cat || 'NBT'"
-  width="1280"
-  height="720"
-  loading="lazy"
-  decoding="async"
-/>
+                <img
+                  v-if="it.nbt_cat_img"
+                  class="cardImg"
+                  :src="it.nbt_cat_img"
+                  :alt="it.nbt_cat || 'NBT'"
+                />
 
                 <div class="cardBody">
                   <div class="cardTop">
@@ -342,7 +338,8 @@
     import { ref, computed, onMounted, watch, onBeforeUnmount } from "vue";
     import { useRoute } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
-    import { post } from "@/api/usatoPublic";
+    import axios from "axios"; // lo puoi anche togliere dopo, vedi sotto
+    import { post, get } from "@/api/usatoPublic";
     import { nbtListingDefault } from "@/content/nbtListingDefault";
     import { fetchNbtCategorie } from "@/api/usatoPublic";
 

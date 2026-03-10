@@ -559,9 +559,7 @@
     }
 
     /** =========================
-     *  Lo     * ad (dedup + parallel)
      *  Load (dedup + parallel)
-
      *  ========================= */
     let inFlight = null;
     let inFlightKey = null;

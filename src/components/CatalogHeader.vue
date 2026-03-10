@@ -134,12 +134,11 @@ const whatsappUrl = computed(() => {
   position: sticky;
   top: 0;
   z-index: 4000;
+  width: 100%;
   background: #f3f3f3;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
-  margin: calc(clamp(1rem, 3vw, 2.2rem) * -1);
-  margin-bottom: clamp(1rem, 2vw, 1.4rem);
+  margin: 0;
 }
-
 .catalog-header__inner {
   min-height: 5.5rem;
   display: flex;
@@ -191,11 +190,6 @@ const whatsappUrl = computed(() => {
 }
 
 @media (max-width: 40rem) {
-  .catalog-header {
-    margin: calc(clamp(1rem, 3vw, 2.2rem) * -1);
-    margin-bottom: 1rem;
-  }
-
   .catalog-header__inner {
     min-height: 4.8rem;
     padding: 0.6rem 0.75rem;

@@ -19,12 +19,14 @@
         <div v-else class="chrome-underlay-image" :style="underlayStyle"></div>
       </div>
 
-      <Topbar :settings="settings" :slug="slug" />
-      <Navbar :settings="settings" :slug="slug" />
+      <template v-if="!hideGlobalChrome">
+  <Topbar :settings="settings" :slug="slug" />
+  <Navbar :settings="settings" :slug="slug" />
+</template>
 
-      <router-view />
+<router-view />
 
-      <Footer :settings="settings" />
+<Footer v-if="!hideGlobalChrome" :settings="settings" />
     </div>
 
     <div v-else class="loading">Caricamento...</div>
@@ -55,6 +57,12 @@
 
     // chrome solo dove serve
     const showChrome = computed(() => route.meta?.tenantRequired === true);
+    const hideGlobalChrome = computed(() => {
+        const canonical = String(route.meta?.canonical || "").trim();
+        const entry = String(route.query?.entry || "").trim().toLowerCase();
+
+        return canonical === "/usato-vetrina" && entry === "external";
+    });
 
     // HOME robusto
     const isHome = computed(() => {
@@ -98,7 +106,13 @@
 
     // ✅ fascia sotto: SOLO pagine interne + SOLO desktop
     const showUnderlay = computed(() => {
-        return showChrome.value && !!settings.value && !isHome.value && isDesktop.value;
+        return (
+            showChrome.value &&
+            !!settings.value &&
+            !isHome.value &&
+            !hideGlobalChrome.value &&
+            isDesktop.value
+        );
     });
 
     // ✅ video come home (se presente)

@@ -4,9 +4,13 @@
     import { useRoute, useRouter } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
 
+
     import CardUsato from "@/components/CardUsato.vue";
     import { fetchUsatoList } from "@/api/usatoPublic";
     import { mapListToCardUsatoDto } from "@/mappers/usatoCardMapper";
+    import CatalogHeader from "@/components/CatalogHeader.vue";
+
+
 
     const route = useRoute();
     const router = useRouter();
@@ -16,6 +20,14 @@
         (route.params.slug || tenant.slug || "").toString().trim(),
     );
     const settings = computed(() => tenant.settings || {});
+
+    const isExternalEntry = computed(() => {
+        const canonical = String(route.meta?.canonical || "").trim();
+        const entry = String(route.query?.entry || "").trim().toLowerCase();
+
+        return canonical === "/usato-vetrina" && entry === "external";
+    });
+
 
     const loading = ref(true);
     const error = ref(null);
@@ -244,11 +256,18 @@
 </script>
 
 <template>
-  <section
-    class="page"
-    :style="{ '--tenant-accent': settings.secondary_color || '#111' }"
-  >
-    <div class="container">
+<section
+  class="page"
+  :class="{ 'page--external-entry': isExternalEntry }"
+  :style="{ '--tenant-accent': settings.secondary_color || '#111' }"
+>
+  <CatalogHeader
+    v-if="isExternalEntry"
+    :settings="settings"
+    :slug="slug"
+  />
+
+  <div class="container">
       <header class="page-head">
         <div class="page-head-row">
           <h1 class="page-title">Vetture disponibili</h1>
@@ -652,5 +671,9 @@
 .count-label {
   text-align: center;
   white-space: nowrap;
+}
+
+.page--external-entry {
+  padding-top: 0;
 }
 </style>

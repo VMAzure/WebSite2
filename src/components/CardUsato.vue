@@ -2,7 +2,7 @@
   <router-link
     class="card"
     :style="{ fontFamily: settings?.font_family || 'inherit' }"
-    :to="`/index/${slug}/usato/${item.id_auto}`"
+    :to="detailTo"
   >
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
@@ -43,6 +43,7 @@
 
 <script setup>
     import { computed } from "vue";
+    import { useRoute } from "vue-router";
 
     /**
      * ⚠️ COMPONENTE CRITICO — CARD USATO
@@ -57,10 +58,44 @@
         priority: { type: Boolean, default: false }, // ✅ solo 1 card sopra la fold
     });
 
+    const route = useRoute();
+
     // ✅ placeholder robusto anche se l'app non è su "/"
     const PLACEHOLDER_IMG = `${import.meta.env.BASE_URL}placeholder-car.png`;
 
     const rawCover = computed(() => String(props.item?.cover_url || "").trim());
+
+    const detailTo = computed(() => {
+        const id = String(props.item?.id_auto || "").trim();
+        const s = String(props.slug || "").trim();
+
+        const entry = String(route.query?.entry || "").trim().toLowerCase();
+        const query = entry === "external" ? { entry: "external" } : {};
+
+        const path = String(route.path || "");
+
+        // preview/dev: /index/:slug/...
+        if (path.startsWith("/index/") && s) {
+            return {
+                path: `/index/${s}/usato/${id}`,
+                query,
+            };
+        }
+
+        // slug path-based: /:slug/...
+        if (s && (path === `/${s}` || path.startsWith(`/${s}/`))) {
+            return {
+                path: `/${s}/usato/${id}`,
+                query,
+            };
+        }
+
+        // domain-based
+        return {
+            path: `/usato/${id}`,
+            query,
+        };
+    });
 
     /**
      * Trasformazione Supabase "best effort":

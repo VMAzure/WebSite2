@@ -61,7 +61,9 @@
         const canonical = String(route.meta?.canonical || "").trim();
         const entry = String(route.query?.entry || "").trim().toLowerCase();
 
-        return canonical === "/usato-vetrina" && entry === "external";
+        if (entry !== "external") return false;
+
+        return canonical === "/usato-vetrina" || canonical === "/usato";
     });
 
     // HOME robusto

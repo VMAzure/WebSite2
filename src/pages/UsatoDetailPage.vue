@@ -13,6 +13,10 @@
     const slug = computed(() => (route.params.slug || tenant.slug || "").toString().trim());
     const idAuto = computed(() => String(route.params.id || "").trim());
 
+    const isExternalEntry = computed(() => {
+        return String(route.query?.entry || "").trim().toLowerCase() === "external";
+    });
+
     const loading = ref(true);
     const error = ref("");
 
@@ -521,6 +525,35 @@
         router.push({
             name: route.name,
             params: { ...route.params, id },
+            query: isExternalEntry.value ? { entry: "external" } : {},
+        });
+    }
+
+    function goBackToListing() {
+        const query = isExternalEntry.value ? { entry: "external" } : {};
+
+        const currentPath = String(route.path || "");
+        const currentSlug = slug.value;
+
+        if (currentPath.startsWith("/index/") && currentSlug) {
+            router.push({
+                path: `/index/${currentSlug}/usato-vetrina`,
+                query,
+            });
+            return;
+        }
+
+        if (currentSlug && (currentPath === `/${currentSlug}` || currentPath.startsWith(`/${currentSlug}/`))) {
+            router.push({
+                path: `/${currentSlug}/usato-vetrina`,
+                query,
+            });
+            return;
+        }
+
+        router.push({
+            path: "/usato-vetrina",
+            query,
         });
     }
 
@@ -597,14 +630,21 @@
 </script>
 
 <template>
-  <section
-    class="page"
-    :style="{
-      fontFamily: settings.font_family || 'inherit',
-      '--tenant-accent': settings.secondary_color || '#111',
-    }"
-  >
-    <div class="container">
+<section
+  class="page"
+  :class="{ 'page--external-entry': isExternalEntry }"
+  :style="{
+    fontFamily: settings.font_family || 'inherit',
+    '--tenant-accent': settings.secondary_color || '#111',
+  }"
+>
+  <CatalogHeader
+    v-if="isExternalEntry"
+    :settings="settings"
+    :slug="slug"
+  />
+
+  <div class="container">
       <button class="back" type="button" @click="$router.back()">← Indietro</button>
 
       <div v-if="loading" class="skeleton">
@@ -1134,5 +1174,9 @@
   opacity: 0.75;
   font-weight: 700;
   padding: 0.5rem 0;
+}
+
+.page--external-entry {
+  padding-top: 0;
 }
 </style>

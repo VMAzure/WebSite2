@@ -19,9 +19,13 @@
         <div v-else class="chrome-underlay-image" :style="underlayStyle"></div>
       </div>
 
-      <template v-if="!hideGlobalChrome">
+  <template v-if="!hideGlobalChrome">
   <Topbar :settings="settings" :slug="slug" />
   <Navbar :settings="settings" :slug="slug" />
+</template>
+
+<template v-else>
+  <CatalogHeader :settings="settings" :slug="slug" />
 </template>
 
 <router-view />
@@ -46,6 +50,7 @@
     import Topbar from "@/components/TopBar.vue";
     import Navbar from "@/components/Navbar.vue";
     import Footer from "@/components/Footer.vue";
+    import CatalogHeader from "@/components/CatalogHeader.vue";
 
     import { loadIubendaIfNeeded } from "@/compliance/iubenda";
 

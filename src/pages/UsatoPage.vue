@@ -8,7 +8,7 @@
     import CardUsato from "@/components/CardUsato.vue";
     import { fetchUsatoList } from "@/api/usatoPublic";
     import { mapListToCardUsatoDto } from "@/mappers/usatoCardMapper";
-    import CatalogHeader from "@/components/CatalogHeader.vue";
+    
 
 
 
@@ -258,15 +258,9 @@
 <template>
 <section
   class="page"
-  :class="{ 'page--external-entry': isExternalEntry }"
   :style="{ '--tenant-accent': settings.secondary_color || '#111' }"
 >
-  <CatalogHeader
-    v-if="isExternalEntry"
-    :settings="settings"
-    :slug="slug"
-  />
-
+ 
   <div class="container">
       <header class="page-head">
         <div class="page-head-row">
@@ -673,7 +667,4 @@
   white-space: nowrap;
 }
 
-.page--external-entry {
-  padding-top: 0;
-}
 </style>

@@ -4,7 +4,7 @@
     import { useRoute, useRouter } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
     import { fetchUsatoDetail, fetchUsatoFoto, fetchUsatoList } from "@/api/usatoPublic";
-    import CatalogHeader from "@/components/CatalogHeader.vue";
+  
 
     const route = useRoute();
     const router = useRouter();
@@ -633,17 +633,12 @@
 <template>
 <section
   class="page"
-  :class="{ 'page--external-entry': isExternalEntry }"
   :style="{
     fontFamily: settings.font_family || 'inherit',
     '--tenant-accent': settings.secondary_color || '#111',
   }"
 >
-  <CatalogHeader
-    v-if="isExternalEntry"
-    :settings="settings"
-    :slug="slug"
-  />
+ 
 
   <div class="container">
       <button class="back" type="button" @click="goBackToListing()">← Indietro</button>
@@ -1175,9 +1170,5 @@
   opacity: 0.75;
   font-weight: 700;
   padding: 0.5rem 0;
-}
-
-.page--external-entry {
-  padding-top: 0;
 }
 </style>

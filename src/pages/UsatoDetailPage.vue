@@ -4,6 +4,7 @@
     import { useRoute, useRouter } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
     import { fetchUsatoDetail, fetchUsatoFoto, fetchUsatoList } from "@/api/usatoPublic";
+    import CatalogHeader from "@/components/CatalogHeader.vue";
 
     const route = useRoute();
     const router = useRouter();
@@ -645,7 +646,7 @@
   />
 
   <div class="container">
-      <button class="back" type="button" @click="$router.back()">← Indietro</button>
+      <button class="back" type="button" @click="goBackToListing()">← Indietro</button>
 
       <div v-if="loading" class="skeleton">
         <div class="sk-layout">

@@ -1,4 +1,5 @@
 <!-- src/components/CatalogHeader.vue -->
+<!-- src/components/CatalogHeader.vue -->
 <template>
   <header class="catalog-header">
     <div class="catalog-header__inner">

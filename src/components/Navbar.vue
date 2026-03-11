@@ -28,6 +28,7 @@
     <div class="mobile-header">
       <!-- ✅ BRAND: appare solo quando la navbar è fixed (scroll) -->
       <router-link
+           v-if="isFixed"
         class="navbrand"
         :class="{ 'navbrand-hidden': !isFixed }"
         :to="isPathTenant ? `/${effectiveSlug}` : `/`"

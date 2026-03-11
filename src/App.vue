@@ -3,21 +3,22 @@
   <!-- ✅ pagine tenant: chrome sempre -->
   <div v-if="showChrome" class="tenant-shell" :class="{ 'chrome-overlay': true }">
     <div v-if="settings" class="tenant-root">
-      <!-- ✅ UNDERLAY SOLO DESKTOP (evita richieste media su mobile => LCP giù) -->
-      <div v-if="showUnderlay" class="chrome-underlay" aria-hidden="true">
-        <video
-          v-if="underlayHasVideo"
-          class="chrome-underlay-video"
-          :src="settings.hero_video_url"
-          :poster="underlayPoster || undefined"
-          autoplay
-          muted
-          loop
-          playsinline
-          preload="none"
-        />
-        <div v-else class="chrome-underlay-image" :style="underlayStyle"></div>
-      </div>
+
+<!-- ✅ UNDERLAY GLOBALE: video su tutti i device, immagine solo fallback -->
+<div v-if="showUnderlay" class="chrome-underlay" aria-hidden="true">
+  <video
+    v-if="underlayHasVideo"
+    class="chrome-underlay-video"
+    :src="settings.hero_video_url"
+    :poster="underlayPoster || undefined"
+    autoplay
+    muted
+    loop
+    playsinline
+    preload="metadata"
+  />
+  <div v-else class="chrome-underlay-image" :style="underlayStyle"></div>
+</div>
 
   <template v-if="!hideGlobalChrome">
   <Topbar :settings="settings" :slug="slug" />
@@ -112,13 +113,13 @@
     });
 
     // ✅ fascia sotto: SOLO pagine interne + SOLO desktop
+    // ✅ fascia sotto: pagine interne su tutti i device
     const showUnderlay = computed(() => {
         return (
             showChrome.value &&
             !!settings.value &&
             !isHome.value &&
-            !hideGlobalChrome.value &&
-            isDesktop.value
+            !hideGlobalChrome.value
         );
     });
 
@@ -217,6 +218,12 @@
   position: relative;
   z-index: 1;
   overflow: hidden;
+}
+
+@media (max-width: 63.99rem) {
+  .chrome-underlay {
+    height: clamp(10rem, 28vw, 14rem);
+  }
 }
 
 .chrome-underlay-video {

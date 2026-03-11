@@ -3,7 +3,12 @@
     import { computed, onMounted, ref, watch } from "vue";
     import { useRoute, useRouter } from "vue-router";
     import { useTenantStore } from "@/stores/tenant";
-    import { fetchUsatoDetail, fetchUsatoFoto, fetchUsatoList } from "@/api/usatoPublic";
+    import {
+        fetchUsatoDetail,
+        fetchUsatoDetailAttivi,
+        fetchUsatoFoto,
+        fetchUsatoList,
+    } from "@/api/usatoPublic";
   
 
     const route = useRoute();
@@ -135,6 +140,8 @@
     // Risposte grezze dal BE
     const carRaw = ref(null); // dettaglio
     const fotoRaw = ref([]); // endpoint foto
+
+    const carExtraRaw = ref(null); // dettagli-attivi (equipaggiamenti + extra)
 
     // ✅ Per correlati
     const allCarsRaw = ref([]);
@@ -558,6 +565,183 @@
         );
     });
 
+
+    const equipmentSerieOpen = ref(false);
+    const equipmentOptionalOpen = ref(false);
+
+    const equipmentSerieGroupsOpen = ref({});
+    const equipmentOptionalGroupsOpen = ref({});
+
+    function normalizeEquipmentItems(raw) {
+        if (!raw) return [];
+
+        if (Array.isArray(raw)) {
+            return raw
+                .map((x) => {
+                    if (typeof x === "string") {
+                        const label = x.trim();
+                        return label
+                            ? {
+                                label,
+                                group: "Altri equipaggiamenti",
+                            }
+                            : null;
+                    }
+
+                    if (x && typeof x === "object") {
+                        const label = String(
+                            x.descrizione ||
+                            x.nome ||
+                            x.name ||
+                            x.label ||
+                            x.description ||
+                            x.testo ||
+                            x.value ||
+                            ""
+                        ).trim();
+
+                        if (!label) return null;
+
+                        const group = String(
+                            x.macrogruppo ||
+                            x.macro_gruppo ||
+                            x.categoria ||
+                            x.category ||
+                            "Altri equipaggiamenti"
+                        ).trim();
+
+                        return {
+                            label,
+                            group: group || "Altri equipaggiamenti",
+                        };
+                    }
+
+                    return null;
+                })
+                .filter(Boolean);
+        }
+
+        if (typeof raw === "string") {
+            return raw
+                .replace(/<br\s*\/?>/gi, "\n")
+                .replace(/<\/li>/gi, "\n")
+                .replace(/<li[^>]*>/gi, "")
+                .replace(/<[^>]+>/g, "")
+                .split(/[\n•;|]+/)
+                .map((x) => x.trim())
+                .filter(Boolean)
+                .map((label) => ({
+                    label,
+                    group: "Altri equipaggiamenti",
+                }));
+        }
+
+        if (raw && typeof raw === "object") {
+            return normalizeEquipmentItems(
+                raw.items ||
+                raw.data ||
+                raw.lista ||
+                raw.list ||
+                raw.equipaggiamenti ||
+                raw.dotazioni ||
+                raw.accessori ||
+                raw.optional ||
+                raw.accessori_serie ||
+                raw.accessori_optional ||
+                raw.pacchetti ||
+                []
+            );
+        }
+
+        return [];
+    }
+
+    function dedupeEquipmentItems(list) {
+        const seen = new Set();
+
+        return list.filter((item) => {
+            const key = `${String(item.group || "").trim().toLowerCase()}::${String(item.label || "")
+                .trim()
+                .toLowerCase()}`;
+
+            if (!item?.label || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    function groupEquipmentItems(items) {
+        const map = new Map();
+
+        for (const item of items) {
+            const groupName =
+                String(item.group || "Altri equipaggiamenti").trim() || "Altri equipaggiamenti";
+
+            if (!map.has(groupName)) {
+                map.set(groupName, []);
+            }
+
+            map.get(groupName).push(item.label);
+        }
+
+        return Array.from(map.entries())
+            .map(([group, items]) => ({
+                group,
+                items,
+            }))
+            .sort((a, b) => a.group.localeCompare(b.group, "it"));
+    }
+
+    const equipmentSerieGroups = computed(() => {
+        const root = carExtraRaw.value || {};
+
+        const items = dedupeEquipmentItems([
+            ...normalizeEquipmentItems(root.accessori_serie),
+            ...normalizeEquipmentItems(root.equipaggiamenti),
+        ]);
+
+        return groupEquipmentItems(items);
+    });
+
+    const equipmentOptionalGroups = computed(() => {
+        const root = carExtraRaw.value || {};
+
+        const items = dedupeEquipmentItems([
+            ...normalizeEquipmentItems(root.accessori_optional),
+            ...normalizeEquipmentItems(root.pacchetti),
+        ]);
+
+        return groupEquipmentItems(items);
+    });
+
+    const hasEquipmentSerie = computed(() => equipmentSerieGroups.value.length > 0);
+    const hasEquipmentOptional = computed(() => equipmentOptionalGroups.value.length > 0);
+
+    const hasEquipment = computed(() => {
+        return hasEquipmentSerie.value || hasEquipmentOptional.value;
+    });
+
+    function toggleEquipmentSerieGroup(groupName) {
+        equipmentSerieGroupsOpen.value = {
+            ...equipmentSerieGroupsOpen.value,
+            [groupName]: !equipmentSerieGroupsOpen.value[groupName],
+        };
+    }
+
+    function toggleEquipmentOptionalGroup(groupName) {
+        equipmentOptionalGroupsOpen.value = {
+            ...equipmentOptionalGroupsOpen.value,
+            [groupName]: !equipmentOptionalGroupsOpen.value[groupName],
+        };
+    }
+
+    function isEquipmentSerieGroupOpen(groupName) {
+        return Boolean(equipmentSerieGroupsOpen.value[groupName]);
+    }
+
+    function isEquipmentOptionalGroupOpen(groupName) {
+        return Boolean(equipmentOptionalGroupsOpen.value[groupName]);
+    }
     /** =========================
      *  ✅ RELATED (Potrebbero interessarti anche)
      *  ========================= */
@@ -860,22 +1044,33 @@
             try {
                 activeIdx.value = 0;
 
-                const [c, f, list] = await Promise.all([
+                const [c, extra, f, list] = await Promise.all([
                     fetchUsatoDetail(s, id),
+                    fetchUsatoDetailAttivi(id).catch(() => null),
                     fetchUsatoFoto(s, id),
                     fetchUsatoList(s).catch(() => null),
                 ]);
 
                 carRaw.value = c || null;
+                carExtraRaw.value = extra || null;
+
+                console.log("DETAIL RESPONSE", c);
+                console.log("DETAIL EXTRA RESPONSE", extra);
+                console.log("EXTRA equipaggiamenti", extra?.equipaggiamenti);
+                console.log("EXTRA accessori_serie", extra?.accessori_serie);
+
                 fotoRaw.value = f ?? [];
 
                 const normalized = normalizeUsatoListPayload(list);
                 allCarsRaw.value = Array.isArray(normalized) ? normalized : [];
+
             } catch (e) {
                 error.value = "Errore nel caricamento dettaglio";
                 carRaw.value = null;
+                carExtraRaw.value = null;
                 fotoRaw.value = [];
                 allCarsRaw.value = [];
+
             } finally {
                 loading.value = false;
             }
@@ -982,6 +1177,134 @@
                 <img :src="u" alt="" loading="lazy" decoding="async" @error="onImgError" />
               </button>
             </div>
+                          <section v-if="hasEquipment" class="equipmentGroup">
+ <section v-if="hasEquipment" class="equipmentGroup">
+  <section v-if="hasEquipmentSerie" class="equipment">
+    <button
+      type="button"
+      class="equipmentToggle"
+      :class="{ open: equipmentSerieOpen }"
+      @click="equipmentSerieOpen = !equipmentSerieOpen"
+      :aria-expanded="equipmentSerieOpen ? 'true' : 'false'"
+    >
+      <span>Equipaggiamenti di serie</span>
+      <span class="equipmentChevron" aria-hidden="true">
+        {{ equipmentSerieOpen ? "−" : "+" }}
+      </span>
+    </button>
+
+    <div v-if="equipmentSerieOpen" class="equipmentPanel">
+      <div
+        v-for="group in equipmentSerieGroups"
+        :key="`serie-group-${group.group}`"
+        class="equipmentSubgroup"
+      >
+        <button
+          type="button"
+          class="equipmentSubToggle"
+          :class="{ open: isEquipmentSerieGroupOpen(group.group) }"
+          @click="toggleEquipmentSerieGroup(group.group)"
+          :aria-expanded="isEquipmentSerieGroupOpen(group.group) ? 'true' : 'false'"
+        >
+          <span>{{ group.group }}</span>
+          <span class="equipmentChevron" aria-hidden="true">
+            {{ isEquipmentSerieGroupOpen(group.group) ? "−" : "+" }}
+          </span>
+        </button>
+
+        <ul
+          v-if="isEquipmentSerieGroupOpen(group.group)"
+          class="equipmentList"
+        >
+          <li
+            v-for="(item, index) in group.items"
+            :key="`serie-${group.group}-${item}-${index}`"
+            class="equipmentItem"
+          >
+            {{ item }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section v-if="hasEquipmentOptional" class="equipment">
+    <button
+      type="button"
+      class="equipmentToggle"
+      :class="{ open: equipmentOptionalOpen }"
+      @click="equipmentOptionalOpen = !equipmentOptionalOpen"
+      :aria-expanded="equipmentOptionalOpen ? 'true' : 'false'"
+    >
+      <span>Optional aggiuntivi</span>
+      <span class="equipmentChevron" aria-hidden="true">
+        {{ equipmentOptionalOpen ? "−" : "+" }}
+      </span>
+    </button>
+
+    <div v-if="equipmentOptionalOpen" class="equipmentPanel">
+      <div
+        v-for="group in equipmentOptionalGroups"
+        :key="`optional-group-${group.group}`"
+        class="equipmentSubgroup"
+      >
+        <button
+          type="button"
+          class="equipmentSubToggle"
+          :class="{ open: isEquipmentOptionalGroupOpen(group.group) }"
+          @click="toggleEquipmentOptionalGroup(group.group)"
+          :aria-expanded="isEquipmentOptionalGroupOpen(group.group) ? 'true' : 'false'"
+        >
+          <span>{{ group.group }}</span>
+          <span class="equipmentChevron" aria-hidden="true">
+            {{ isEquipmentOptionalGroupOpen(group.group) ? "−" : "+" }}
+          </span>
+        </button>
+
+        <ul
+          v-if="isEquipmentOptionalGroupOpen(group.group)"
+          class="equipmentList"
+        >
+          <li
+            v-for="(item, index) in group.items"
+            :key="`optional-${group.group}-${item}-${index}`"
+            class="equipmentItem"
+          >
+            {{ item }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</section>
+
+  <section v-if="hasEquipmentOptional" class="equipment">
+    <button
+      type="button"
+      class="equipmentToggle"
+      :class="{ open: equipmentOptionalOpen }"
+      @click="equipmentOptionalOpen = !equipmentOptionalOpen"
+      :aria-expanded="equipmentOptionalOpen ? 'true' : 'false'"
+    >
+      <span>Optional aggiuntivi</span>
+      <span class="equipmentChevron" aria-hidden="true">
+        {{ equipmentOptionalOpen ? "−" : "+" }}
+      </span>
+    </button>
+
+    <div v-if="equipmentOptionalOpen" class="equipmentPanel">
+      <ul class="equipmentList">
+        <li
+          v-for="(item, index) in equipmentOptionalList"
+          :key="`optional-${item}-${index}`"
+          class="equipmentItem"
+        >
+          {{ item }}
+        </li>
+      </ul>
+    </div>
+  </section>
+</section>
           </div>
 
           <!-- COLONNA DESTRA: DATI -->
@@ -1266,6 +1589,95 @@
   position: absolute;
   inset: 0;
   border: 0.22rem solid var(--tenant-accent, #111);
+}
+
+.equipmentGroup {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.equipment {
+  margin-top: 0;
+  background: #fff;
+}
+
+.equipmentToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  padding: 0.95rem 1rem;
+  border: 0.06rem solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  color: #111;
+  cursor: pointer;
+
+  font-size: 1rem;
+  font-weight: 900;
+  text-align: left;
+}
+
+.equipmentToggle.open {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.equipmentChevron {
+  font-size: 1.3rem;
+  line-height: 1;
+  font-weight: 900;
+  color: var(--tenant-accent, #111);
+}
+
+.equipmentPanel {
+  border-left: 0.06rem solid rgba(0, 0, 0, 0.1);
+  border-right: 0.06rem solid rgba(0, 0, 0, 0.1);
+  border-bottom: 0.06rem solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+}
+
+.equipmentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.equipmentItem {
+  padding: 0.8rem 1rem;
+  border-top: 0.06rem solid rgba(0, 0, 0, 0.08);
+  line-height: 1.4;
+}
+
+.equipmentSubgroup {
+  border-top: 0.06rem solid rgba(0, 0, 0, 0.08);
+}
+
+.equipmentSubgroup:first-child {
+  border-top: 0;
+}
+
+.equipmentSubToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  padding: 0.9rem 1rem;
+  border: 0;
+  background: #fff;
+  color: #111;
+  cursor: pointer;
+
+  font-size: 0.98rem;
+  font-weight: 900;
+  text-align: left;
+}
+
+.equipmentSubToggle.open {
+  background: #f5f5f5;
 }
 
 .detailTech {

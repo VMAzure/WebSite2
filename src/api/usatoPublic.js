@@ -42,6 +42,10 @@ export function fetchUsatoDetail(slug, idAuto) {
     return get(`/api/azlease/usato-pubblico/${enc(slug)}/${enc(idAuto)}`);
 }
 
+export function fetchUsatoDetailAttivi(idAuto) {
+    return get(`/api/azlease/public/usato/${enc(idAuto)}/dettagli-attivi`);
+}
+
 export function fetchUsatoFoto(slug, idAuto) {
     // slug non serve in questa rotta (firma invariata per compatibilità)
     return get(`/api/azlease/usato/${enc(idAuto)}/vetrina`);

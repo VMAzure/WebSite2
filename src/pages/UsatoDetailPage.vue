@@ -14,6 +14,117 @@
     const slug = computed(() => (route.params.slug || tenant.slug || "").toString().trim());
     const idAuto = computed(() => String(route.params.id || "").trim());
 
+    function firstNonEmpty(...values) {
+        for (const v of values) {
+            const s = String(v || "").trim();
+            if (s) return s;
+        }
+        return "";
+    }
+
+    const contactPhone = computed(() => {
+        const s = settings.value || {};
+        const c = s.contatti || {};
+
+        return firstNonEmpty(
+            s.phone,
+            s.telefono,
+            s.phone_number,
+            s.telefono_principale,
+            s.telefono_fisso,
+            s.tel,
+            s.mobile,
+            s.cellulare,
+            s.numero_telefono,
+            s.contact_phone,
+            c.telefono,
+            c.phone,
+            c.mobile,
+            c.cellulare
+        );
+    });
+
+    const contactWhatsapp = computed(() => {
+        const s = settings.value || {};
+        const c = s.contatti || {};
+
+        return firstNonEmpty(
+            s.whatsapp,
+            s.whatsapp_phone,
+            s.telefono_whatsapp,
+            s.numero_whatsapp,
+            s.whatsapp_number,
+            c.whatsapp,
+            c.whatsapp_phone,
+            contactPhone.value
+        );
+    });
+
+    const contactEmail = computed(() => {
+        const s = settings.value || {};
+        const c = s.contatti || {};
+
+        return firstNonEmpty(
+            s.email,
+            s.mail,
+            s.contact_email,
+            s.email_contatto,
+            s.email_principale,
+            c.email,
+            c.mail
+        );
+    });
+
+    function normalizePhoneForHref(value) {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+
+        let cleaned = raw.replace(/[^+\d]/g, "");
+
+        if (cleaned.startsWith("00")) {
+            cleaned = `+${cleaned.slice(2)}`;
+        }
+
+        return cleaned;
+    }
+    const phoneHref = computed(() => {
+        const normalized = normalizePhoneForHref(contactPhone.value);
+        return normalized ? `tel:${normalized}` : "";
+    });
+
+    const whatsappHref = computed(() => {
+        const raw = contactWhatsapp.value || contactPhone.value;
+        const normalized = normalizePhoneForHref(raw).replace(/^\+/, "");
+        if (!normalized) return "";
+
+        const carLabel = [title.value, yearText.value, priceText.value]
+            .filter(Boolean)
+            .join(" - ");
+
+        const text = encodeURIComponent(
+            carLabel
+                ? `Ciao, sono interessato a questa auto: ${carLabel}`
+                : "Ciao, sono interessato a questa auto."
+        );
+
+        return `https://wa.me/${normalized}?text=${text}`;
+    });
+
+    const emailHref = computed(() => {
+        const raw = String(contactEmail.value || "").trim();
+        if (!raw) return "";
+
+        const subject = encodeURIComponent(
+            title.value ? `Richiesta informazioni - ${title.value}` : "Richiesta informazioni auto usata"
+        );
+
+        return `mailto:${raw}?subject=${subject}`;
+    });
+
+    const hasContactCtas = computed(() => {
+        return Boolean(phoneHref.value || whatsappHref.value || emailHref.value);
+    });
+
     const isExternalEntry = computed(() => {
         return String(route.query?.entry || "").trim().toLowerCase() === "external";
     });
@@ -285,6 +396,166 @@
             if (s) return s;
         }
         return "";
+    });
+
+    const techTab = ref("motore");
+
+    function cleanSpecValue(v) {
+        if (v === null || v === undefined) return "";
+        const s = String(v).trim();
+        if (!s) return "";
+        if (["null", "undefined", "n.d.", "nd", "-", "--"].includes(s.toLowerCase())) return "";
+        return s;
+    }
+
+    function firstSpecValue(...values) {
+        for (const v of values) {
+            const s = cleanSpecValue(v);
+            if (s) return s;
+        }
+        return "";
+    }
+
+    const technicalSpecs = computed(() => {
+        const a = carAuto.value || {};
+        const d = carDett.value || {};
+        const root = carRaw.value || {};
+
+        const motore = [
+            {
+                key: "alimentazione",
+                label: "Alimentazione",
+                value: firstSpecValue(d.alimentazione, a.alimentazione, root.alimentazione),
+            },
+            {
+                key: "cambio",
+                label: "Cambio",
+                value: firstSpecValue(d.cambio, a.cambio, root.cambio),
+            },
+            {
+                key: "trazione",
+                label: "Trazione",
+                value: firstSpecValue(d.trazione, a.trazione, root.trazione),
+            },
+            {
+                key: "cilindrata",
+                label: "Cilindrata",
+                value: firstSpecValue(d.cilindrata, a.cilindrata, root.cilindrata),
+            },
+            {
+                key: "potenza",
+                label: "Potenza",
+                value: firstSpecValue(
+                    d.potenza,
+                    a.potenza,
+                    root.potenza,
+                    d.cv,
+                    a.cv,
+                    root.cv,
+                    d.kw,
+                    a.kw,
+                    root.kw
+                ),
+            },
+            {
+                key: "classe_euro",
+                label: "Classe Euro",
+                value: firstSpecValue(d.classe_euro, a.classe_euro, root.classe_euro),
+            },
+            {
+                key: "accelerazione",
+                label: "Accelerazione 0-100",
+                value: firstSpecValue(
+                    d.accelerazione_0_100,
+                    d.accelerazione,
+                    a.accelerazione_0_100,
+                    a.accelerazione,
+                    root.accelerazione_0_100
+                ),
+            },
+            {
+                key: "velocita_massima",
+                label: "Velocità massima",
+                value: firstSpecValue(
+                    d.velocita_massima,
+                    a.velocita_massima,
+                    root.velocita_massima
+                ),
+            },
+        ].filter((x) => x.value);
+
+        const dimensioni = [
+            {
+                key: "porte",
+                label: "Numero porte",
+                value: firstSpecValue(d.numero_porte, d.porte, a.numero_porte, a.porte, root.porte),
+            },
+            {
+                key: "posti",
+                label: "Numero posti",
+                value: firstSpecValue(d.numero_posti, d.posti, a.numero_posti, a.posti, root.posti),
+            },
+            {
+                key: "bagagliaio",
+                label: "Bagagliaio",
+                value: firstSpecValue(d.capacita_bagagliaio, d.bagagliaio, a.capacita_bagagliaio, a.bagagliaio),
+            },
+            {
+                key: "lunghezza",
+                label: "Lunghezza",
+                value: firstSpecValue(d.lunghezza, a.lunghezza, root.lunghezza),
+            },
+            {
+                key: "larghezza",
+                label: "Larghezza",
+                value: firstSpecValue(d.larghezza, a.larghezza, root.larghezza),
+            },
+            {
+                key: "altezza",
+                label: "Altezza",
+                value: firstSpecValue(d.altezza, a.altezza, root.altezza),
+            },
+            {
+                key: "passo",
+                label: "Passo",
+                value: firstSpecValue(d.passo, a.passo, root.passo),
+            },
+            {
+                key: "peso",
+                label: "Peso",
+                value: firstSpecValue(d.peso, a.peso, root.peso, d.massa, a.massa, root.massa),
+            },
+            {
+                key: "portata",
+                label: "Portata utile",
+                value: firstSpecValue(d.portata, a.portata, root.portata),
+            },
+            {
+                key: "serbatoio",
+                label: "Capacità serbatoio",
+                value: firstSpecValue(d.capacita_serbatoio, a.capacita_serbatoio, root.capacita_serbatoio),
+            },
+            {
+                key: "colore",
+                label: "Colore",
+                value: firstSpecValue(a.colore, d.colore, root.colore),
+            },
+        ].filter((x) => x.value);
+
+        return { motore, dimensioni };
+    });
+
+    const activeTechnicalSpecs = computed(() => {
+        return techTab.value === "dimensioni"
+            ? technicalSpecs.value.dimensioni
+            : technicalSpecs.value.motore;
+    });
+
+    const hasTechnicalSpecs = computed(() => {
+        return (
+            technicalSpecs.value.motore.length > 0 ||
+            technicalSpecs.value.dimensioni.length > 0
+        );
     });
 
     /** =========================
@@ -635,7 +906,7 @@
   class="page"
   :style="{
     fontFamily: settings.font_family || 'inherit',
-    '--tenant-accent': settings.secondary_color || '#111',
+    '--tenant-accent': settings.tertiary_color || settings.secondary_color || '#111',
   }"
 >
  
@@ -716,40 +987,85 @@
           <!-- COLONNA DESTRA: DATI -->
           <div class="details">
             <header class="head">
-              <h1 class="h1">{{ title }}</h1>
+  <div class="headMain">
+    <h1 class="h1">{{ title }}</h1>
 
-              <div class="sub">
-                <span v-if="yearText">{{ yearText }}</span>
-                <span v-if="yearText && kmText" class="sep">·</span>
-                <span v-if="kmText">{{ kmText }}</span>
+    <div class="sub">
+      <span v-if="yearText">{{ yearText }}</span>
+      <span v-if="yearText && kmText" class="sep">·</span>
+      <span v-if="kmText">{{ kmText }}</span>
+    </div>
+
+    <div v-if="priceText" class="price">{{ priceText }}</div>
+  </div>
+
+  <div v-if="hasContactCtas" class="headActions">
+    <a
+      v-if="phoneHref"
+      :href="phoneHref"
+      class="headCtaIcon"
+      aria-label="Chiama ora"
+      title="Chiama ora"
+    >
+      <i class="fas fa-phone" aria-hidden="true"></i>
+    </a>
+
+    <a
+      v-if="whatsappHref"
+      :href="whatsappHref"
+      class="headCtaIcon"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="WhatsApp"
+      title="WhatsApp"
+    >
+      <i class="fab fa-whatsapp" aria-hidden="true"></i>
+    </a>
+
+    <a
+      v-if="emailHref"
+      :href="emailHref"
+      class="headCtaIcon"
+      aria-label="Email"
+      title="Email"
+    >
+      <i class="fas fa-envelope" aria-hidden="true"></i>
+    </a>
+  </div>
+</header>
+
+                        <section v-if="hasTechnicalSpecs" class="detailTech">
+              <div class="detailTechTabs">
+                <button
+                  type="button"
+                  class="detailTechTab"
+                  :class="{ active: techTab === 'motore' }"
+                  @click="techTab = 'motore'"
+                >
+                  Motore e prestazioni
+                </button>
+
+                <button
+                  type="button"
+                  class="detailTechTab"
+                  :class="{ active: techTab === 'dimensioni' }"
+                  @click="techTab = 'dimensioni'"
+                >
+                  Dimensioni e peso
+                </button>
               </div>
 
-              <div v-if="priceText" class="price">{{ priceText }}</div>
-            </header>
-
-            <div class="specs">
-              <div class="spec" v-if="carDett?.alimentazione">
-                <span class="k">Alimentazione</span><span class="v">{{ carDett.alimentazione }}</span>
+              <div class="detailTechTable">
+                <div
+                  v-for="row in activeTechnicalSpecs"
+                  :key="row.key"
+                  class="detailTechRow"
+                >
+                  <span class="detailTechKey">{{ row.label }}</span>
+                  <span class="detailTechValue">{{ row.value }}</span>
+                </div>
               </div>
-              <div class="spec" v-if="carDett?.cambio">
-                <span class="k">Cambio</span><span class="v">{{ carDett.cambio }}</span>
-              </div>
-              <div class="spec" v-if="carDett?.trazione">
-                <span class="k">Trazione</span><span class="v">{{ carDett.trazione }}</span>
-              </div>
-              <div class="spec" v-if="carDett?.classe_euro">
-                <span class="k">Euro</span><span class="v">{{ carDett.classe_euro }}</span>
-              </div>
-              <div class="spec" v-if="carDett?.potenza">
-                <span class="k">Potenza</span><span class="v">{{ carDett.potenza }}</span>
-              </div>
-              <div class="spec" v-if="carDett?.cilindrata">
-                <span class="k">Cilindrata</span><span class="v">{{ carDett.cilindrata }}</span>
-              </div>
-              <div class="spec" v-if="carAuto?.colore">
-                <span class="k">Colore</span><span class="v">{{ carAuto.colore }}</span>
-              </div>
-            </div>
+            </section>
 
             <div v-if="descrizioneText" class="desc">
               <h2 class="h2">Descrizione</h2>
@@ -952,6 +1268,78 @@
   border: 0.22rem solid var(--tenant-accent, #111);
 }
 
+.detailTech {
+  margin-top: 1rem;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  overflow: hidden;
+}
+
+.detailTechTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  padding: 0 0 0.9rem 0;
+  border-bottom: 0.06rem solid rgba(0, 0, 0, 0.08);
+}
+
+.detailTechTab {
+  min-width: 0;
+  border: 0.06rem solid rgba(0, 0, 0, 0.08);
+  background: #f3f3f3;
+  color: #222;
+  padding: 0.85rem 1rem;
+  font-weight: 800;
+  font-size: 0.96rem;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.detailTechTab.active {
+  background: var(--tenant-accent);
+  color: #fff;
+  border-color: var(--tenant-accent);
+  box-shadow: inset 0 -0.18rem 0 0 rgba(0,0,0,0.2);
+}
+
+.detailTechTable {
+  padding: 0.75rem;
+}
+
+.detailTechRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.7rem 0.75rem;
+  border-top: 0.06rem solid rgba(0, 0, 0, 0.08);
+}
+
+.detailTechKey {
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.detailTechValue {
+  text-align: right;
+  font-weight: 750;
+  opacity: 0.9;
+}
+
+@media (max-width: 42rem) {
+  .detailTechRow {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .detailTechValue {
+    text-align: left;
+  }
+}
+
 /* head */
 .head {
   margin-top: 0.2rem;
@@ -976,27 +1364,72 @@
   font-weight: 900;
 }
 
-/* specs */
-.specs {
-  margin-top: 1rem;
+.head {
+  margin-top: 0.2rem;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.6rem 1rem;
-}
-.spec {
-  display: flex;
-  justify-content: space-between;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
-  padding: 0.55rem 0;
-  border-bottom: 0.06rem solid rgba(0, 0, 0, 0.1);
 }
-.k {
-  opacity: 0.7;
-  font-weight: 750;
+
+.headMain {
+  min-width: 0;
 }
-.v {
-  font-weight: 750;
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
 }
+
+.headCtaIcon {
+  width: 3.6rem;
+  height: 3.6rem;
+  flex: 0 0 3.6rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  background: linear-gradient(180deg, #f7f7f7 0%, #ececec 100%);
+  color: var(--tenant-accent, #111);
+  text-decoration: none;
+
+  border: 0.06rem solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.9rem;
+  box-shadow: 0 0.35rem 0.85rem rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+
+  transition: transform 0.18s ease, background 0.18s ease, opacity 0.18s ease;
+}
+
+.headCtaIcon i {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.headCtaIcon:hover {
+  background: rgba(0, 0, 0, 0.04);
+  transform: translateY(-0.04rem);
+}
+
+.headCtaIcon:active {
+  transform: translateY(0);
+}
+
+@media (min-width: 64rem) {
+  .head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .headActions {
+    justify-content: flex-end;
+  }
+}
+
+/* specs */
+
 
 /* desc */
 .desc {

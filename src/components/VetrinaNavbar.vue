@@ -161,7 +161,19 @@ const whatsappUrl = computed(() => {
 }
 
 .vetrina-navbar__social--fb { background: #1877f2; }
-.vetrina-navbar__social--ig { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+/* Logo Instagram ufficiale: viola-blu in alto → arancio-rosso in basso */
+.vetrina-navbar__social--ig {
+  background: linear-gradient(
+    180deg,
+    #405de6 0%,
+    #5851db 20%,
+    #833ab4 40%,
+    #c13584 60%,
+    #e1306c 80%,
+    #fd1d1d 90%,
+    #f77737 100%
+  );
+}
 .vetrina-navbar__social--yt { background: #ff0000; }
 .vetrina-navbar__social--wa { background: #25d366; }
 .vetrina-navbar__social--tt { background: #000; }

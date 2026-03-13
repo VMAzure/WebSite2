@@ -305,3 +305,27 @@ CARD USATO — BLINDATA (design system compliant)
   }
 }
 </style>
+
+<!-- Senza scoped: su MOBILE qualcosa (browser/tema) applica blu → override solo per max-width -->
+<style>
+/* Desktop: ok */
+.card-usato .price-badge {
+  color: #fff !important;
+}
+
+/* Solo mobile: forziamo nero (vince su regole @media che colorano link/titoli di blu) */
+@media (max-width: 64rem) {
+  .card-usato,
+  .card-usato .card-usato-info,
+  .card-usato .card-usato-title,
+  .card-usato .card-usato-meta,
+  .card-usato .card-usato-meta *,
+  .card-usato .card-usato-cta,
+  .card-usato .info,
+  .card-usato .title,
+  .card-usato .meta,
+  .card-usato .cta-inline {
+    color: #000 !important;
+  }
+}
+</style>

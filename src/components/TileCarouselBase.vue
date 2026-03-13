@@ -23,7 +23,7 @@
 </script>
 
 <template>
-  <section class="row">
+  <section class="row tile-carousel-section">
     <header class="head">
       <h2 class="title">{{ title }}</h2>
 
@@ -107,6 +107,7 @@
   font-size: clamp(1.15rem, 2.4vw, 1.55rem);
   font-weight: 800;
   letter-spacing: -0.01em;
+  color: #000;
 }
 
 .actions {
@@ -199,5 +200,16 @@
   opacity: 0.9;
   text-align: center;
   line-height: 1.2;
+  color: #000;
+}
+</style>
+
+<!-- Su mobile le marche (label) e titolo non devono essere blu -->
+<style>
+@media (max-width: 64rem) {
+  .tile-carousel-section .title,
+  .tile-carousel-section .tile .label {
+    color: #000 !important;
+  }
 }
 </style>

@@ -2061,6 +2061,7 @@
   margin: 0 0 0.9rem;
   font-size: clamp(1.15rem, 2vw, 1.4rem);
   font-weight: 900;
+  color: #000;
 }
 
 .relatedGrid {
@@ -2096,6 +2097,7 @@
   overflow: hidden;                            /* ✅ il bordo “chiude” tutto */
   display: flex;
   flex-direction: column;
+  color: #000;
 }
 
 .relatedMedia {
@@ -2131,13 +2133,15 @@
 
 .relatedBody {
   padding: 0.75rem 0.85rem 0.9rem; /* ✅ respiro: top / sides / bottom */
+  color: #000;
 }
 
 .relatedName {
   font-weight: 900;
   line-height: 1.15;
   font-size: 0.98rem;
-  margin: 0;  
+  margin: 0;
+  color: #000;
 }
 
 .relatedMetaLine {
@@ -2145,6 +2149,7 @@
   opacity: 0.8;
   font-weight: 750;
   font-size: 0.9rem;
+  color: #000;
 }
 
 .dot {
@@ -2156,11 +2161,27 @@
   margin-top: 0.45rem;
   font-weight: 900;
   font-size: 0.95rem;
+  color: #000;
 }
 
 .relatedEmpty {
   opacity: 0.75;
   font-weight: 700;
   padding: 0.5rem 0;
+}
+</style>
+
+<!-- Override mobile: "Potrebbero interessarti anche" + nomi marche sempre neri -->
+<style>
+@media (max-width: 64rem) {
+  .related .relatedTitle,
+  .related .relatedCard,
+  .related .relatedBody,
+  .related .relatedName,
+  .related .relatedMetaLine,
+  .related .relatedMetaLine *,
+  .related .relatedCta {
+    color: #000 !important;
+  }
 }
 </style>

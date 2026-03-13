@@ -57,21 +57,14 @@ body {
     padding-top: 0;
 }
 
-/* Card usato/vetrina: titoli e testi SEMPRE neri (override blu link su mobile) */
-a.card-usato,
-a.card-usato:hover,
-a.card-usato:visited,
-a.card-usato:focus,
-a.card-usato .info,
-a.card-usato .info *,
-a.card-usato .title,
-a.card-usato .meta,
-a.card-usato .meta *,
-a.card-usato .cta-inline {
+/* Card usato: div cliccabile (non più link) → niente stile blu link su mobile */
+.card-usato .info,
+.card-usato .info *,
+.card-usato .title,
+.card-usato .meta,
+.card-usato .cta-inline {
     color: #000 !important;
-    text-decoration: none !important;
 }
-/* prezzo sul badge resta bianco */
-a.card-usato .price-badge {
+.card-usato .price-badge {
     color: #fff !important;
 }

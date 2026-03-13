@@ -1,8 +1,11 @@
 <template>
-  <router-link
+  <div
     class="card card-usato"
     :style="{ fontFamily: settings?.font_family || 'inherit' }"
-    :to="detailTo"
+    role="link"
+    tabindex="0"
+    @click="goToDetail"
+    @keydown.enter.prevent="goToDetail"
   >
     <!-- IMMAGINE 5:4 -->
     <div class="image-wrapper">
@@ -38,12 +41,12 @@
 
       <div class="cta-inline">Dettagli →</div>
     </div>
-  </router-link>
+  </div>
 </template>
 
 <script setup>
     import { computed } from "vue";
-    import { useRoute } from "vue-router";
+    import { useRoute, useRouter } from "vue-router";
 
     /**
      * ⚠️ COMPONENTE CRITICO — CARD USATO
@@ -59,6 +62,12 @@
     });
 
     const route = useRoute();
+    const router = useRouter();
+
+    function goToDetail() {
+        const to = detailTo.value;
+        if (to?.path) router.push(to);
+    }
 
     // ✅ placeholder robusto anche se l'app non è su "/"
     const PLACEHOLDER_IMG = `${import.meta.env.BASE_URL}placeholder-car.png`;
@@ -198,21 +207,16 @@ CARD USATO — BLINDATA (design system compliant)
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  cursor: pointer;
 
-  text-decoration: none !important;
-  color: #000 !important;
+  text-decoration: none;
+  color: #000;
 
   border-radius: 0;
   border: 0.06rem solid rgba(0, 0, 0, 0.1);
   box-shadow: none;
 
   transition: transform 0.18s ease, border-color 0.18s ease;
-}
-
-.card:hover,
-.card:visited,
-.card:focus {
-  color: #000 !important;
 }
 
 .card:hover {

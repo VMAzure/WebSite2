@@ -2,6 +2,7 @@
 <script setup>
     import { computed, onMounted, ref, watch } from "vue";
     import { useRoute, useRouter } from "vue-router";
+    import { storeToRefs } from "pinia";
     import { useTenantStore } from "@/stores/tenant";
     import {
         fetchUsatoDetail,
@@ -14,8 +15,9 @@
     const route = useRoute();
     const router = useRouter();
     const tenant = useTenantStore();
+    const { settings: tenantSettings } = storeToRefs(tenant);
 
-    const settings = computed(() => tenant.settings || {});
+    const settings = computed(() => tenantSettings.value || {});
     const slug = computed(() => (route.params.slug || tenant.slug || "").toString().trim());
     const idAuto = computed(() => String(route.params.id || "").trim());
 
@@ -27,7 +29,7 @@
         return "";
     }
 
-    // Stesse chiavi della Topbar (settings.contact_phone / contact_email) così i contatti sono sempre allineati
+    // Contatti: prima dal dettaglio auto (carRaw), poi da settings come Topbar/Footer
     const contactPhone = computed(() => {
         const s = settings.value || {};
         const c = s.contatti || {};
@@ -35,6 +37,12 @@
         const root = carRaw.value || {};
 
         return firstNonEmpty(
+            root.dealer_phone,
+            root.seller_phone,
+            root.contact_phone,
+            root.telefono,
+            root.phone,
+            root.phone_number,
             s.contact_phone,
             s.phone,
             s.telefono,
@@ -51,20 +59,20 @@
             c.mobile,
             c.cellulare,
             sede.telefono,
-            sede.phone,
-            root.contact_phone,
-            root.telefono,
-            root.phone,
-            root.dealer_phone,
-            root.seller_phone
+            sede.phone
         );
     });
 
     const contactWhatsapp = computed(() => {
         const s = settings.value || {};
         const c = s.contatti || {};
+        const root = carRaw.value || {};
 
         return firstNonEmpty(
+            root.whatsapp,
+            root.whatsapp_phone,
+            root.dealer_phone,
+            root.seller_phone,
             s.whatsapp,
             s.whatsapp_phone,
             s.telefono_whatsapp,
@@ -76,7 +84,6 @@
         );
     });
 
-    // Stesse chiavi della Topbar (settings.contact_email) così i contatti sono sempre allineati
     const contactEmail = computed(() => {
         const s = settings.value || {};
         const c = s.contatti || {};
@@ -84,6 +91,11 @@
         const root = carRaw.value || {};
 
         return firstNonEmpty(
+            root.dealer_email,
+            root.seller_email,
+            root.contact_email,
+            root.email,
+            root.mail,
             s.contact_email,
             s.email,
             s.mail,
@@ -93,11 +105,7 @@
             c.email,
             c.mail,
             sede.email,
-            sede.mail,
-            root.contact_email,
-            root.email,
-            root.dealer_email,
-            root.seller_email
+            sede.mail
         );
     });
 
@@ -1909,13 +1917,15 @@
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 5000;
+    z-index: 9999;
     padding: 0.6rem 0.75rem;
     padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
     gap: 0.75rem;
     background: #fff;
     border-top: 0.06rem solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 -0.25rem 1rem rgba(0, 0, 0, 0.08);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   .contactBar__btn {

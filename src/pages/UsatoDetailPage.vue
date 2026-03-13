@@ -29,7 +29,14 @@
         return "";
     }
 
-    // Contatti: prima dal dettaglio auto (carRaw), poi da settings come Topbar/Footer
+    /** Estrae il numero da whatsapp_url (es. https://wa.me/393755167170 → 393755167170) */
+    function numberFromWhatsappUrl(url) {
+        if (!url || typeof url !== "string") return "";
+        const m = url.trim().match(/wa\.me\/(\d+)/i);
+        return m ? m[1] : "";
+    }
+
+    // Contatti: prima da settings (contact_phone, contact_email, whatsapp_url), poi da dettaglio auto (carRaw)
     const contactPhone = computed(() => {
         const s = settings.value || {};
         const c = s.contatti || {};
@@ -37,15 +44,15 @@
         const root = carRaw.value || {};
 
         return firstNonEmpty(
+            s.contact_phone,
+            s.phone,
+            s.telefono,
             root.dealer_phone,
             root.seller_phone,
             root.contact_phone,
             root.telefono,
             root.phone,
             root.phone_number,
-            s.contact_phone,
-            s.phone,
-            s.telefono,
             s.phone_number,
             s.telefono_principale,
             s.telefono_fisso,
@@ -69,15 +76,16 @@
         const root = carRaw.value || {};
 
         return firstNonEmpty(
-            root.whatsapp,
-            root.whatsapp_phone,
-            root.dealer_phone,
-            root.seller_phone,
+            numberFromWhatsappUrl(s.whatsapp_url),
             s.whatsapp,
             s.whatsapp_phone,
             s.telefono_whatsapp,
             s.numero_whatsapp,
             s.whatsapp_number,
+            root.whatsapp,
+            root.whatsapp_phone,
+            root.dealer_phone,
+            root.seller_phone,
             c.whatsapp,
             c.whatsapp_phone,
             contactPhone.value
@@ -91,14 +99,14 @@
         const root = carRaw.value || {};
 
         return firstNonEmpty(
+            s.contact_email,
+            s.email,
+            s.mail,
             root.dealer_email,
             root.seller_email,
             root.contact_email,
             root.email,
             root.mail,
-            s.contact_email,
-            s.email,
-            s.mail,
             s.email_contatto,
             s.email_principale,
             s.contact_email_address,
@@ -156,7 +164,9 @@
     });
 
     const hasContactCtas = computed(() => {
-        return Boolean(phoneHref.value || whatsappHref.value || emailHref.value);
+        const t = tenantSettings.value;
+        const hasFromStore = t && (t.contact_phone || t.contact_email || t.whatsapp_url);
+        return Boolean(hasFromStore || phoneHref.value || whatsappHref.value || emailHref.value);
     });
 
     const isExternalEntry = computed(() => {

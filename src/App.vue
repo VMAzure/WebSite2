@@ -37,6 +37,7 @@
 <router-view />
 
 <Footer v-if="!hideGlobalChrome" :settings="settings" />
+<VetrinaFooter v-if="hideGlobalChrome" :settings="settings" />
     </div>
 
     <div v-else class="loading">Caricamento...</div>
@@ -58,6 +59,7 @@
     import Footer from "@/components/Footer.vue";
     import CatalogHeader from "@/components/CatalogHeader.vue";
     import VetrinaNavbar from "@/components/VetrinaNavbar.vue";
+    import VetrinaFooter from "@/components/VetrinaFooter.vue";
 
     import { loadIubendaIfNeeded } from "@/compliance/iubenda";
 

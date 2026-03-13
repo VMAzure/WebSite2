@@ -1122,8 +1122,52 @@
 
       <div v-else-if="error" class="state">{{ error }}</div>
 
-      <div v-else class="layout">
+      <div v-else class="layout" :class="{ 'layout--stickyBar': hasContactCtas }">
         <div class="main">
+          <!-- Titolo: su mobile sopra le immagini, su desktop in colonna destra -->
+          <header class="head">
+            <div class="headMain">
+              <h1 class="h1">{{ title }}</h1>
+              <div class="sub">
+                <span v-if="yearText">{{ yearText }}</span>
+                <span v-if="yearText && kmText" class="sep">·</span>
+                <span v-if="kmText">{{ kmText }}</span>
+              </div>
+              <div v-if="priceText" class="price">{{ priceText }}</div>
+            </div>
+            <div v-if="hasContactCtas" class="headActions">
+              <a
+                v-if="phoneHref"
+                :href="phoneHref"
+                class="headCtaIcon"
+                aria-label="Chiama ora"
+                title="Chiama ora"
+              >
+                <i class="fas fa-phone" aria-hidden="true"></i>
+              </a>
+              <a
+                v-if="whatsappHref"
+                :href="whatsappHref"
+                class="headCtaIcon"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                title="WhatsApp"
+              >
+                <i class="fab fa-whatsapp" aria-hidden="true"></i>
+              </a>
+              <a
+                v-if="emailHref"
+                :href="emailHref"
+                class="headCtaIcon"
+                aria-label="Email"
+                title="Email"
+              >
+                <i class="fas fa-envelope" aria-hidden="true"></i>
+              </a>
+            </div>
+          </header>
+
           <!-- COLONNA SINISTRA: FOTO -->
           <div class="gallery">
             <div
@@ -1309,55 +1353,7 @@
 
           <!-- COLONNA DESTRA: DATI -->
           <div class="details">
-            <header class="head">
-  <div class="headMain">
-    <h1 class="h1">{{ title }}</h1>
-
-    <div class="sub">
-      <span v-if="yearText">{{ yearText }}</span>
-      <span v-if="yearText && kmText" class="sep">·</span>
-      <span v-if="kmText">{{ kmText }}</span>
-    </div>
-
-    <div v-if="priceText" class="price">{{ priceText }}</div>
-  </div>
-
-  <div v-if="hasContactCtas" class="headActions">
-    <a
-      v-if="phoneHref"
-      :href="phoneHref"
-      class="headCtaIcon"
-      aria-label="Chiama ora"
-      title="Chiama ora"
-    >
-      <i class="fas fa-phone" aria-hidden="true"></i>
-    </a>
-
-    <a
-      v-if="whatsappHref"
-      :href="whatsappHref"
-      class="headCtaIcon"
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label="WhatsApp"
-      title="WhatsApp"
-    >
-      <i class="fab fa-whatsapp" aria-hidden="true"></i>
-    </a>
-
-    <a
-      v-if="emailHref"
-      :href="emailHref"
-      class="headCtaIcon"
-      aria-label="Email"
-      title="Email"
-    >
-      <i class="fas fa-envelope" aria-hidden="true"></i>
-    </a>
-  </div>
-</header>
-
-                        <section v-if="hasTechnicalSpecs" class="detailTech">
+            <section v-if="hasTechnicalSpecs" class="detailTech">
               <div class="detailTechTabs">
                 <button
                   type="button"
@@ -1396,6 +1392,42 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Barra contatti sticky in basso (solo mobile) -->
+      <div v-if="hasContactCtas" class="contactBar" aria-label="Contatti">
+        <a
+          v-if="phoneHref"
+          :href="phoneHref"
+          class="contactBar__btn contactBar__btn--phone"
+          aria-label="Chiama"
+          title="Chiama"
+        >
+          <i class="fas fa-phone" aria-hidden="true"></i>
+          <span>Chiama</span>
+        </a>
+        <a
+          v-if="whatsappHref"
+          :href="whatsappHref"
+          class="contactBar__btn contactBar__btn--wa"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="WhatsApp"
+          title="WhatsApp"
+        >
+          <i class="fab fa-whatsapp" aria-hidden="true"></i>
+          <span>WhatsApp</span>
+        </a>
+        <a
+          v-if="emailHref"
+          :href="emailHref"
+          class="contactBar__btn contactBar__btn--email"
+          aria-label="Email"
+          title="Email"
+        >
+          <i class="fas fa-envelope" aria-hidden="true"></i>
+          <span>Email</span>
+        </a>
       </div>
 
       <!-- ✅ SOTTO A TUTTO (prima del footer) -->
@@ -1488,9 +1520,20 @@
 @media (min-width: 60rem) {
   .main {
     grid-template-columns: minmax(0, 42rem) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+  .head {
+    grid-column: 2;
+    grid-row: 1;
   }
   .gallery {
+    grid-column: 1;
+    grid-row: 1 / -1;
     max-width: 42rem;
+  }
+  .details {
+    grid-column: 2;
+    grid-row: 2;
   }
 }
 
@@ -1737,7 +1780,7 @@
 
 .detailTechValue {
   text-align: right;
-  font-weight: 750;
+  font-weight: 400;
   opacity: 0.9;
 }
 
@@ -1827,6 +1870,69 @@
 
 .headCtaIcon:active {
   transform: translateY(0);
+}
+
+/* Barra contatti sticky in basso: solo mobile */
+.contactBar {
+  display: none;
+}
+
+@media (max-width: 63.99rem) {
+  .headActions {
+    display: none;
+  }
+
+  .contactBar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 5000;
+    padding: 0.6rem 0.75rem;
+    padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+    gap: 0.75rem;
+    background: #fff;
+    border-top: 0.06rem solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 -0.25rem 1rem rgba(0, 0, 0, 0.08);
+  }
+
+  .contactBar__btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    border: none;
+    border-radius: 0.75rem;
+    min-height: 2.75rem;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+
+  .contactBar__btn:active {
+    transform: scale(0.98);
+  }
+
+  .contactBar__btn--phone {
+    background: var(--tenant-accent, #1a1a1a);
+  }
+
+  .contactBar__btn--wa {
+    background: #25d366;
+  }
+
+  .contactBar__btn--email {
+    background: #555;
+  }
+
+  .layout--stickyBar {
+    padding-bottom: 4.5rem;
+  }
 }
 
 @media (min-width: 64rem) {

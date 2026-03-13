@@ -1,6 +1,6 @@
 <template>
   <router-link
-    class="card"
+    class="card card-usato"
     :style="{ fontFamily: settings?.font_family || 'inherit' }"
     :to="detailTo"
   >

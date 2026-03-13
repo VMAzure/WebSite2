@@ -630,6 +630,19 @@
   margin-top: var(--u-5);
 }
 
+/* Forza nero su titoli e testi delle card (niente blu link su mobile) */
+.page :deep(.grid a.card),
+.page :deep(.grid a.card .title),
+.page :deep(.grid a.card .meta),
+.page :deep(.grid a.card .cta-inline) {
+  color: #000 !important;
+}
+.page :deep(.grid a.card:hover),
+.page :deep(.grid a.card:visited),
+.page :deep(.grid a.card:focus) {
+  color: #000 !important;
+}
+
 /* Responsive */
 @media (max-width: 80rem) {
   .grid {

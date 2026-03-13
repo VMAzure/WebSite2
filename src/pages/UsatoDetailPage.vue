@@ -27,11 +27,15 @@
         return "";
     }
 
+    // Stesse chiavi della Topbar (settings.contact_phone / contact_email) così i contatti sono sempre allineati
     const contactPhone = computed(() => {
         const s = settings.value || {};
         const c = s.contatti || {};
+        const sede = s.sede || {};
+        const root = carRaw.value || {};
 
         return firstNonEmpty(
+            s.contact_phone,
             s.phone,
             s.telefono,
             s.phone_number,
@@ -41,11 +45,18 @@
             s.mobile,
             s.cellulare,
             s.numero_telefono,
-            s.contact_phone,
+            s.contact_phone_number,
             c.telefono,
             c.phone,
             c.mobile,
-            c.cellulare
+            c.cellulare,
+            sede.telefono,
+            sede.phone,
+            root.contact_phone,
+            root.telefono,
+            root.phone,
+            root.dealer_phone,
+            root.seller_phone
         );
     });
 
@@ -65,18 +76,28 @@
         );
     });
 
+    // Stesse chiavi della Topbar (settings.contact_email) così i contatti sono sempre allineati
     const contactEmail = computed(() => {
         const s = settings.value || {};
         const c = s.contatti || {};
+        const sede = s.sede || {};
+        const root = carRaw.value || {};
 
         return firstNonEmpty(
+            s.contact_email,
             s.email,
             s.mail,
-            s.contact_email,
             s.email_contatto,
             s.email_principale,
+            s.contact_email_address,
             c.email,
-            c.mail
+            c.mail,
+            sede.email,
+            sede.mail,
+            root.contact_email,
+            root.email,
+            root.dealer_email,
+            root.seller_email
         );
     });
 

@@ -200,7 +200,7 @@ CARD USATO — BLINDATA (design system compliant)
   overflow: hidden;
 
   text-decoration: none;
-  color: inherit;
+  color: #1a1a1a;
 
   border-radius: 0;
   border: 0.06rem solid rgba(0, 0, 0, 0.1);
@@ -256,16 +256,18 @@ CARD USATO — BLINDATA (design system compliant)
   font-weight: 750;
   line-height: 1.18;
   margin: 0;
+  color: #1a1a1a;
 
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-   min-height: calc(1.18em * 2); /* riserva 2 righe */
+  min-height: calc(1.18em * 2); /* riserva 2 righe */
 }
 
 .meta {
   font-size: 0.92rem;
+  color: #1a1a1a;
   opacity: 0.72;
   display: flex;
   align-items: center;
@@ -285,6 +287,9 @@ CARD USATO — BLINDATA (design system compliant)
 }
 
 @media (max-width: 48rem) {
+  .card {
+    -webkit-tap-highlight-color: transparent;
+  }
   .card:active {
     transform: scale(0.99);
   }

@@ -1,7 +1,7 @@
 <template>
   <div
     class="card card-usato"
-    :style="{ fontFamily: settings?.font_family || 'inherit' }"
+    :style="{ fontFamily: settings?.font_family || 'inherit', color: '#000' }"
     role="link"
     tabindex="0"
     @click="goToDetail"
@@ -29,17 +29,17 @@
       </div>
     </div>
 
-    <!-- INFO -->
-    <div class="info">
-      <h3 class="title">{{ item.marca }} {{ item.allestimento }}</h3>
+    <!-- INFO: colore inline + classi uniche (evita override da .title/.meta globali) -->
+    <div class="info card-usato-info" style="color: #000">
+      <h3 class="title card-usato-title" style="color: #000">{{ item.marca }} {{ item.allestimento }}</h3>
 
-      <div class="meta">
+      <div class="meta card-usato-meta" style="color: #000">
         <span>{{ item.anno_immatricolazione }}</span>
         <span class="sep">·</span>
         <span>{{ (item.km_certificati ?? 0).toLocaleString("it-IT") }} km</span>
       </div>
 
-      <div class="cta-inline">Dettagli →</div>
+      <div class="cta-inline card-usato-cta" style="color: #000">Dettagli →</div>
     </div>
   </div>
 </template>

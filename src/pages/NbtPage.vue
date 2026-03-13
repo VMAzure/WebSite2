@@ -177,18 +177,17 @@
               </div>
             </div>
 
-            <!-- COLONNA DESTRA: SOLO MAPPA (caricata quando in viewport per LCP) -->
-            <div class="uxRightCol" ref="mapContainerRef">
+            <!-- COLONNA DESTRA: MAPPA -->
+            <div class="uxRightCol">
               <div class="ctaMap" aria-label="Mappa sede">
                 <iframe
-                  v-if="mapSrc && mapInView"
+                  v-if="mapSrc"
                   class="ctaMapFrame"
                   :src="mapSrc"
                   loading="lazy"
                   referrerpolicy="no-referrer-when-downgrade"
                   title="Mappa"
                 />
-                <div v-else-if="mapSrc" class="ctaMapPlaceholder" aria-hidden="true"></div>
                 <div v-else class="ctaMapEmpty">
                   Mappa non configurata: aggiungi <strong>map_embed_url</strong> oppure
                   <strong>contact_address</strong>.
@@ -377,8 +376,6 @@
     // - usa map_embed_url se c'è
     // - altrimenti genera embed (prima “società”, poi indirizzo)
     // =========================
-    const mapContainerRef = ref(null);
-    const mapInView = ref(false);
     const contactAddress = computed(() => String(settings.value?.contact_address || "").trim());
 
     // ✅ label “società” tenant-aware (no static)
@@ -762,20 +759,6 @@
     onMounted(() => {
         hardResetScrollStyles();
         load();
-
-        // Mappa: carica iframe solo quando il blocco è in viewport (migliora LCP)
-        const el = mapContainerRef.value;
-        if (el && typeof IntersectionObserver !== "undefined") {
-            const io = new IntersectionObserver(
-                (entries) => {
-                    if (entries[0]?.isIntersecting) mapInView.value = true;
-                },
-                { rootMargin: "200px", threshold: 0 }
-            );
-            io.observe(el);
-        } else if (el) {
-            mapInView.value = true;
-        }
     });
 
     onBeforeUnmount(() => {
@@ -1314,13 +1297,6 @@
   height: 100%;
   border: 0;
   display: block;
-}
-
-.ctaMapPlaceholder {
-  width: 100%;
-  height: 100%;
-  min-height: inherit;
-  background: rgba(0, 0, 0, 0.04);
 }
 
 .ctaMapEmpty {

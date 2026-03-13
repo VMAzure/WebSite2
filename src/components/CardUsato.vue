@@ -199,14 +199,20 @@ CARD USATO — BLINDATA (design system compliant)
   flex-direction: column;
   overflow: hidden;
 
-  text-decoration: none;
-  color: #1a1a1a;
+  text-decoration: none !important;
+  color: #000 !important;
 
   border-radius: 0;
   border: 0.06rem solid rgba(0, 0, 0, 0.1);
   box-shadow: none;
 
   transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.card:hover,
+.card:visited,
+.card:focus {
+  color: #000 !important;
 }
 
 .card:hover {
@@ -256,7 +262,7 @@ CARD USATO — BLINDATA (design system compliant)
   font-weight: 750;
   line-height: 1.18;
   margin: 0;
-  color: #1a1a1a;
+  color: #000 !important;
 
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -267,7 +273,7 @@ CARD USATO — BLINDATA (design system compliant)
 
 .meta {
   font-size: 0.92rem;
-  color: #1a1a1a;
+  color: #000 !important;
   opacity: 0.72;
   display: flex;
   align-items: center;
@@ -283,7 +289,7 @@ CARD USATO — BLINDATA (design system compliant)
   margin-top: 0.35rem;
   font-weight: 800;
   font-size: 0.95rem;
-  color: var(--tenant-accent, #111);
+  color: #000 !important;
 }
 
 @media (max-width: 48rem) {

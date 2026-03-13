@@ -4,8 +4,13 @@
   <div v-if="showChrome" class="tenant-shell" :class="{ 'chrome-overlay': true }">
     <div v-if="settings" class="tenant-root">
 
-<!-- ✅ UNDERLAY GLOBALE: video su tutti i device, immagine solo fallback -->
-<div v-if="showUnderlay" class="chrome-underlay" aria-hidden="true">
+<!-- ✅ UNDERLAY: hero video/foto — in home e nelle altre pagine -->
+<div v-if="showUnderlay" class="chrome-underlay" :class="{ 'chrome-underlay--home': isHome }" aria-hidden="true">
+  <!-- Testo hero in home (claim) sopra underlay -->
+  <div v-if="isHome && (settings?.claim_hero || settings?.subclaim_hero)" class="chrome-underlay-claim">
+    <p v-if="settings?.claim_hero" class="chrome-underlay-claim__main">{{ settings.claim_hero }}</p>
+    <p v-if="settings?.subclaim_hero" class="chrome-underlay-claim__sub">{{ settings.subclaim_hero }}</p>
+  </div>
   <video
     v-if="underlayHasVideo"
     class="chrome-underlay-video"
@@ -26,7 +31,7 @@
 </template>
 
 <template v-else>
-  <CatalogHeader :settings="settings" :slug="slug" />
+  <VetrinaNavbar :settings="settings" :slug="slug" />
 </template>
 
 <router-view />
@@ -52,6 +57,7 @@
     import Navbar from "@/components/Navbar.vue";
     import Footer from "@/components/Footer.vue";
     import CatalogHeader from "@/components/CatalogHeader.vue";
+    import VetrinaNavbar from "@/components/VetrinaNavbar.vue";
 
     import { loadIubendaIfNeeded } from "@/compliance/iubenda";
 
@@ -63,12 +69,11 @@
 
     // chrome solo dove serve
     const showChrome = computed(() => route.meta?.tenantRequired === true);
+    // entry=external: navbar stile noleggio lungo termine (Condividi, Reset filtri, hamburger)
     const hideGlobalChrome = computed(() => {
         const canonical = String(route.meta?.canonical || "").trim();
         const entry = String(route.query?.entry || "").trim().toLowerCase();
-
         if (entry !== "external") return false;
-
         return canonical === "/usato-vetrina" || canonical === "/usato";
     });
 
@@ -112,15 +117,9 @@
         }
     });
 
-    // ✅ fascia sotto: SOLO pagine interne + SOLO desktop
-    // ✅ fascia sotto: pagine interne su tutti i device
+    // Underlay (hero video/foto): in HOME e nelle altre pagine, così la hero si vede sempre
     const showUnderlay = computed(() => {
-        return (
-            showChrome.value &&
-            !!settings.value &&
-            !isHome.value &&
-            !hideGlobalChrome.value
-        );
+        return showChrome.value && !!settings.value && !hideGlobalChrome.value;
     });
 
     // ✅ video come home (se presente)
@@ -220,9 +219,19 @@
   overflow: hidden;
 }
 
+/* Home: underlay a tutta altezza come hero (stesso spazio della Hero in IndexPage) */
+.chrome-underlay--home {
+  height: clamp(62vh, 78vh, 92vh);
+  min-height: clamp(24rem, 52vw, 44rem);
+}
+
 @media (max-width: 63.99rem) {
   .chrome-underlay {
     height: clamp(10rem, 28vw, 14rem);
+  }
+  .chrome-underlay--home {
+    height: clamp(62vh, 78vh, 92vh);
+    min-height: clamp(24rem, 52vw, 44rem);
   }
 }
 
@@ -240,7 +249,7 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  filter: saturate(0.9) contrast(0.95);
+  filter: saturate(1) contrast(1.02);
 }
 
 .chrome-underlay::after {
@@ -249,9 +258,39 @@
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.35) 0%,
-    rgba(0, 0, 0, 0.55) 100%
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.35) 100%
   );
   pointer-events: none;
+}
+
+/* Testo hero (claim) in home sopra underlay */
+.chrome-underlay-claim {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+  color: #fff;
+  pointer-events: none;
+}
+.chrome-underlay-claim__main {
+  font-size: clamp(2.6rem, 6vw, 4rem);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-shadow: 0 0.4rem 1.2rem rgba(0, 0, 0, 0.45);
+  margin: 0;
+}
+.chrome-underlay-claim__sub {
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  font-weight: 400;
+  line-height: 1.35;
+  text-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.35);
+  margin: 1rem 0 0;
 }
 </style>

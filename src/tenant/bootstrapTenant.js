@@ -157,6 +157,7 @@ export async function bootstrapTenant(route) {
     }
 }
 
+// Font sempre dai settings del tenant (slug): unica sorgente
 function applyTenantTheme(settings) {
     try {
         if (typeof document === "undefined") return

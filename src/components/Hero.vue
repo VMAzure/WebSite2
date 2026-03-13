@@ -12,15 +12,9 @@
     const shouldLoadVideo = ref(false);
 
     onMounted(() => {
-        const kick = () => (shouldLoadVideo.value = true);
-
         // requestIdleCallback = carica quando il browser è “libero”
-        if ("requestIdleCallback" in window) {
-            window.requestIdleCallback(kick, { timeout: 2000 });
-        } else {
-            // fallback: dopo un attimo dal mount (post paint)
-            setTimeout(kick, 900);
-        }
+        // Carica il video subito così la hero si vede subito (niente area grigia)
+        shouldLoadVideo.value = true;
     });
 
     const hasVideo = computed(() => {
@@ -194,9 +188,9 @@
   z-index: 3;
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.25) 0%,
-    rgba(0, 0, 0, 0.45) 45%,
-    rgba(0, 0, 0, 0.55) 100%
+    rgba(0, 0, 0, 0.12) 0%,
+    rgba(0, 0, 0, 0.28) 45%,
+    rgba(0, 0, 0, 0.38) 100%
   );
 }
 

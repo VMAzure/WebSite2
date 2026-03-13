@@ -4,7 +4,7 @@
     import { useTenantStore } from "@/stores/tenant";
     import axios from "axios";
 
-    import Hero from "@/components/Hero.vue";
+    // Hero in home: underlay in App.vue
 
     // ✅ TOLTO: BodyTypeCarousel
     import BrandCarousel from "@/components/BrandCarousel.vue";
@@ -22,11 +22,20 @@
     // slug = path (/index/:slug) oppure store (dominio custom)
     const slug = computed(() => route.params.slug || tenant.slug);
 
-    // UI settings (tema, navbar, hero, footer ecc.)
+    // UI settings (tema, navbar, hero, footer ecc.) — fetch dedicata
     const uiSettings = ref(null);
 
+    // Per la home: usa subito tenant.settings (già caricati dal router) così Hero mostra foto/video subito
+    const effectiveSettings = computed(() => {
+        if (uiSettings.value) return uiSettings.value;
+        if (tenant.slug && slug.value && tenant.slug === slug.value && tenant.settings) {
+            return tenant.settings;
+        }
+        return null;
+    });
+
     /* ===========================================
-        FONT DINAMICO
+        FONT: sempre dai settings del tenant (slug)
         =========================================== */
     const applyFontFamily = (font) => {
         if (!font) return;
@@ -68,8 +77,16 @@
             link.type = "image/png";
         }
 
+        // Font sempre dai settings (slug)
         applyFontFamily(uiSettings.value?.font_family);
     };
+
+    // Font sempre dai settings del tenant (slug): applica quando lo store ha i settings
+    watch(
+        () => (tenant.slug === slug.value && tenant.settings?.font_family) ? tenant.settings.font_family : null,
+        (font) => { if (font) applyFontFamily(font); },
+        { immediate: true },
+    );
 
     /* ===========================================
         BOOT
@@ -144,15 +161,15 @@
 </script>
 
 <template>
-  <div v-if="uiSettings" style="min-height: 100vh; background: #fff">
-    <Hero :settings="uiSettings" :slug="slug" />
+  <div v-if="effectiveSettings" style="min-height: 100vh; background: #fff">
+    <!-- Hero in home è mostrata da App.vue (underlay) -->
 
     <!-- ✅ TOLTO: BodyTypeCarousel -->
 
     <!-- ✅ I BRAND: arrivano dall’endpoint -->
-    <BrandCarousel :settings="uiSettings" :slug="slug" :items="brandItems" />
+    <BrandCarousel :settings="effectiveSettings" :slug="slug" :items="brandItems" />
     <FeaturedCarsSection
-      :settings="uiSettings"
+      :settings="effectiveSettings"
       :slug="slug"
       :topUsato="featuredItems"
     />

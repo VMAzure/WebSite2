@@ -36,7 +36,7 @@
       </div>
     </section>
 
-    <div v-if="loading" class="state">Caricamento…</div>
+    <div v-if="loading" class="state state--loading">Caricamento…</div>
     <div v-else-if="error" class="state error">{{ error }}</div>
 
     <div v-else>
@@ -45,7 +45,7 @@
       <!-- CARD CATEGORIE (con retro tariffe) -->
       <div v-else class="grid">
         <article
-          v-for="it in items"
+          v-for="(it, cardIndex) in items"
           :key="it.id || it.key || it.name || JSON.stringify(it)"
           class="card"
         >
@@ -58,6 +58,9 @@
                   class="cardImg"
                   :src="it.nbt_cat_img"
                   :alt="it.nbt_cat || 'NBT'"
+                  :loading="cardIndex === 0 ? 'eager' : 'lazy'"
+                  :fetchpriority="cardIndex === 0 ? 'high' : undefined"
+                  decoding="async"
                 />
 
                 <div class="cardBody">
@@ -174,17 +177,18 @@
               </div>
             </div>
 
-            <!-- COLONNA DESTRA: SOLO MAPPA -->
-            <div class="uxRightCol">
+            <!-- COLONNA DESTRA: SOLO MAPPA (caricata quando in viewport per LCP) -->
+            <div class="uxRightCol" ref="mapContainerRef">
               <div class="ctaMap" aria-label="Mappa sede">
                 <iframe
-                  v-if="mapSrc"
+                  v-if="mapSrc && mapInView"
                   class="ctaMapFrame"
                   :src="mapSrc"
                   loading="lazy"
                   referrerpolicy="no-referrer-when-downgrade"
                   title="Mappa"
                 />
+                <div v-else-if="mapSrc" class="ctaMapPlaceholder" aria-hidden="true"></div>
                 <div v-else class="ctaMapEmpty">
                   Mappa non configurata: aggiungi <strong>map_embed_url</strong> oppure
                   <strong>contact_address</strong>.
@@ -369,10 +373,12 @@
     const settings = computed(() => tenant.settings || {});
 
     // =========================
-    // MAPPA: SEMPRE renderizzata
+    // MAPPA: caricata solo quando in viewport (migliora LCP)
     // - usa map_embed_url se c'è
     // - altrimenti genera embed (prima “società”, poi indirizzo)
     // =========================
+    const mapContainerRef = ref(null);
+    const mapInView = ref(false);
     const contactAddress = computed(() => String(settings.value?.contact_address || "").trim());
 
     // ✅ label “società” tenant-aware (no static)
@@ -756,6 +762,20 @@
     onMounted(() => {
         hardResetScrollStyles();
         load();
+
+        // Mappa: carica iframe solo quando il blocco è in viewport (migliora LCP)
+        const el = mapContainerRef.value;
+        if (el && typeof IntersectionObserver !== "undefined") {
+            const io = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0]?.isIntersecting) mapInView.value = true;
+                },
+                { rootMargin: "200px", threshold: 0 }
+            );
+            io.observe(el);
+        } else if (el) {
+            mapInView.value = true;
+        }
     });
 
     onBeforeUnmount(() => {
@@ -798,6 +818,13 @@
 .state {
   padding: 12px 0;
   opacity: 0.8;
+}
+
+.state--loading {
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .state.error {
@@ -1287,6 +1314,13 @@
   height: 100%;
   border: 0;
   display: block;
+}
+
+.ctaMapPlaceholder {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .ctaMapEmpty {
